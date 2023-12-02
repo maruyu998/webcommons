@@ -24,7 +24,7 @@ export function requireQueryParams(...paramNames:string[]){
     if(Array.isArray(response.locals.queries)) return sendError(response, new UnexpectedError("internal error. queries must not be array."));
     if(!isObject(response.locals.queries)) return sendError(response, new UnexpectedError("internal error. queries must be object."));
     for(const paramName of paramNames){
-      if(request.query[paramName] == undefined) return sendError(response, new InvalidParamError(paramName));
+      if(request.query[paramName] === undefined) return sendError(response, new InvalidParamError(paramName));
       response.locals.queries[paramName] = String(request.query[paramName]);
     }
     next();
@@ -39,7 +39,7 @@ export function requireBodyParams(...paramNames:string[]){
     if(!isObject(response.locals.bodies)) return sendError(response, new UnexpectedError("internal error. bodies must be object."));
     if(!isObject(request.body)) return sendError(response, new UnexpectedError("internal error. bodies must be object."));
     for(const paramName of paramNames){
-      if(request.body[paramName] == undefined) return sendError(response, new InvalidParamError(paramName));
+      if(request.body[paramName] === undefined) return sendError(response, new InvalidParamError(paramName));
       /* eslint-disable @typescript-eslint/no-unsafe-assignment */
       response.locals.bodies[paramName] = request.body[paramName];
     }

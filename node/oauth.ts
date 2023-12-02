@@ -53,7 +53,7 @@ function getSession(request:express.Request){
 async function setSession(request:express.Request, { auth, token, userInfo }:{
   auth?:AuthSessionType, token?:TokenSessionType, userInfo?:UserInfoType
 }){
-  if(request.session.maruyuOAuth == undefined) {
+  if(request.session.maruyuOAuth === undefined) {
     request.session.maruyuOAuth = {};
     await saveSession(request);
   }
@@ -63,7 +63,7 @@ async function setSession(request:express.Request, { auth, token, userInfo }:{
   await saveSession(request);
 }
 async function clearSession(request:express.Request, keys:("auth"|"token"|"userInfo")[]){
-  if(request.session.maruyuOAuth == undefined) {
+  if(request.session.maruyuOAuth === undefined) {
     request.session.maruyuOAuth = {};
     await saveSession(request);
   }
@@ -76,7 +76,7 @@ async function clearSession(request:express.Request, keys:("auth"|"token"|"userI
 // tokens
 async function refreshAccessToken(request:express.Request):Promise<boolean>{
   const { token } = getSession(request);
-  if(token == undefined) throw new Error("token is not saved");
+  if(token === undefined) throw new Error("token is not saved");
   const { accessToken, tokenType, refreshToken, scope } = token;
   const tokenClient = new ClientOAuth2.Token(oauth2, {
     access_token: accessToken, 
@@ -85,7 +85,7 @@ async function refreshAccessToken(request:express.Request):Promise<boolean>{
     scope
   });
   const isSuccess = await tokenClient.refresh().then(async token=>{
-      if(token.data.name == "AuthenticationError") throw new AuthenticationError("refreshToken is expired");
+      if(token.data.name === "AuthenticationError") throw new AuthenticationError("refreshToken is expired");
       const { accessToken, tokenType, refreshToken, scope, expiresAt } = token.data;
       await regenerateSession(request);
       await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
@@ -100,7 +100,7 @@ async function refreshAccessToken(request:express.Request):Promise<boolean>{
 
 async function getAccessToken(request:express.Request):Promise<string>{
   const { token } = getSession(request);
-  if(token == undefined) throw new Error("token is not saved");
+  if(token === undefined) throw new Error("token is not saved");
   const { accessToken, expiresAt } = token;
   if(expiresAt.getTime() > Date.now()) return accessToken;
   const isRefreshSuccess = await refreshAccessToken(request);
@@ -111,7 +111,7 @@ async function getAccessToken(request:express.Request):Promise<string>{
 // userinfo
 export async function getUserInfo(request:express.Request, willReload:boolean=false):Promise<UserInfoType|null>{
   const { userInfo } = getSession(request);
-  if(willReload == false && userInfo != null && userInfo.expiresAt.getTime() > Date.now()) return userInfo;
+  if(willReload === false && userInfo != null && userInfo.expiresAt.getTime() > Date.now()) return userInfo;
   const accessToken = await getAccessToken(request).catch(()=>null);
   if(accessToken == null) return null;
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_DOMAIN);
@@ -133,14 +133,16 @@ export async function redirectToSignin(request:express.Request, response:express
   await setSession(request, { auth:{ codeVerifier, state, returnTo } });
   const codeChallengeMethod = "S256";
   const clientSecret = CLIENT_SECRET;
-  const uri = oauth2.code.getUri({ state, query: { clientSecret, codeChallenge, codeChallengeMethod } });
   // {authorization_uri} ? {client_id=} & {redirect_uri=(service_domain + /api/oauth/callback, etc)}
   //                     & {response_type=code} & {state=} & {scope=} & {code_challenge=} & {code_challenge_method=}
+  const uri = oauth2.code.getUri({ state, query: { 
+    client_secret: clientSecret, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod
+  } });
   response.redirect(uri);
 }
 
 export async function processCallbackThenRedirect(request:express.Request, response:express.Response):Promise<void>{
-  if(getSession(request).auth == undefined) return sendError(response, new AuthenticationError("Session is expired"));
+  if(getSession(request).auth === undefined) return sendError(response, new AuthenticationError("Session is expired"));
   const { auth } = getSession(request);
   if(auth == null) return sendError(response, new AuthenticationError("auth is empty."));
   const { state, codeVerifier, returnTo } = auth;
@@ -148,9 +150,9 @@ export async function processCallbackThenRedirect(request:express.Request, respo
   if(!state) return sendError(response, new AuthenticationError("state is empty."));
   if(!codeVerifier) return sendError(response, new AuthenticationError("codeVerifier is empty."));
   
-  if(request.query.state == undefined) return sendError(response, new InvalidParamError("state"));
+  if(request.query.state === undefined) return sendError(response, new InvalidParamError("state"));
   const returnedState = String(request.query.state);
-  if(state != returnedState) return sendError(response, new AuthenticationError("state is not match."));
+  if(state !== returnedState) return sendError(response, new AuthenticationError("state is not match."));
 
   // post to access_token_uri with body { grant_type=authorization_code, code, redirect_uri, code_verifier }
   // response: { access_token, token_type, expires_in(second), refresh_token, scope }
