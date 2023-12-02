@@ -31,6 +31,7 @@ export function useTypeStateCookie<T>(
     const newCookie = String(cookie[name]);
     if(newCookie===undefined && defaultValue!==undefined) setCookie(name, encoder(defaultValue));
     const [ state, setState ] = useState<T>(decoder(newCookie));
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
     useEffect(()=>{ setCookie(name, encoder(state)); }, [state]);
     return [state, setState];
 }
