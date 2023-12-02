@@ -3,9 +3,9 @@ import Mdate from "../utils/mdate";
 type BasicSourceTypes = string|number|boolean|Date|Mdate|null;
 
 export type PacketSourceDataType = BasicSourceTypes
-                              |{[key:string]:PacketSourceDataType}
-                              |{[key:string]:PacketSourceDataType[]}
-                              |PacketSourceDataType[];
+                                  |{[key:string]:PacketSourceDataType}
+                                  |{[key:string]:PacketSourceDataType[]}
+                                  |PacketSourceDataType[];
 
 type ValueType = string|number|boolean|null|ValueType[]|PacketConvertedData[]|{[key:string]:PacketConvertedData};
 export type PacketConvertedData = {

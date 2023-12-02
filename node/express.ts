@@ -1,5 +1,4 @@
 import express from "express";
-import { PacketSourceDataType } from "../commons/types/packet";
 import { convertPacket } from "../commons/utils/packet";
 
 export async function saveSession(request:express.Request){
@@ -15,12 +14,12 @@ export function sendMessage(response:express.Response, title:string, message:str
   response.json(convertPacket({title, message}));
 }
 
-export function sendData(response:express.Response, title:string, message:string, data:PacketSourceDataType):void{
+export function sendData(response:express.Response, title:string, message:string, data:any):void{
   console.info(`[${title}]: ${message}`);
   response.json(convertPacket({title, message, data}));
 }
 
-export function sendError(response:express.Response, error:Error, data?:PacketSourceDataType):void{
+export function sendError(response:express.Response, error:Error, data?:any):void{
   const title = error.name;
   const message = error.message;
   console.error(`[${title}]: ${message}`);

@@ -119,10 +119,11 @@ export async function getUserInfo(request:express.Request, willReload:boolean=fa
                       .then(({data})=>data as PacketSourceDataType)
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn == null) return null;
-  const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
+  // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
+  const { user_id, user_name, data } = fetchReturn as { user_id:string, user_name:string, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
-  await setSession(request, { userInfo:{ userId, userName, data, expiresAt } });
-  return { userId, userName, data, expiresAt };
+  await setSession(request, { userInfo:{ userId:user_id, userName:user_name, data, expiresAt } });
+  return { userId: user_id, userName:user_name, data, expiresAt };
 }
 
 ///////////////////////////////////// [ E N D P O I N T ] /////////////////////////////////////
@@ -156,10 +157,16 @@ export async function processCallbackThenRedirect(request:express.Request, respo
 
   // post to access_token_uri with body { grant_type=authorization_code, code, redirect_uri, code_verifier }
   // response: { access_token, token_type, expires_in(second), refresh_token, scope }
-  await oauth2.code.getToken(request.originalUrl, { body: { codeVerifier } })
-  .catch((error:Error)=>{sendError(response, error); throw error;})
+  await oauth2.code.getToken(request.originalUrl, { body: { code_verifier: codeVerifier } })
+  .catch((error:Error)=>{console.log(error); sendError(response, error); throw error;})
   .then(async token=>{
-    const { accessToken, tokenType, refreshToken, scope, expiresAt } = token.data;
+    const { 
+      access_token: accessToken, 
+      token_type: tokenType, 
+      refresh_token: refreshToken, 
+      scope, 
+      expires_at: expiresAt
+    } = token.data;
     await regenerateSession(request);
     await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
     return response.redirect(returnTo || "/");
