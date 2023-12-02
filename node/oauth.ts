@@ -31,7 +31,7 @@ const OAUTH_TOKEN_PATH = mconfig.get("oauthTokenPath");
 const OAUTH_AUTHORIZE_PATH = mconfig.get("oauthAuthorizePath");
 const OAUTH_USER_INFO_PATH = mconfig.get("oauthUserInfoPath");
 
-const USERINFO_KEEP_DURATION = mconfig.get("userinfoKeepDuration");
+const USER_INFO_KEEP_DURATION = mconfig.get("userInfoKeepDuration");
 
 const SCOPES = ["user"];
 
@@ -120,7 +120,7 @@ export async function getUserInfo(request:express.Request, willReload:boolean=fa
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn == null) return null;
   const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
-  const expiresAt = new Date(Date.now() + USERINFO_KEEP_DURATION);
+  const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
   await setSession(request, { userInfo:{ userId, userName, data, expiresAt } });
   return { userId, userName, data, expiresAt };
 }
