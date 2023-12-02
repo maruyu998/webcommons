@@ -14,15 +14,19 @@ export function sendMessage(response:express.Response, title:string, message:str
   response.json(convertPacket({title, message}));
 }
 
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function sendData(response:express.Response, title:string, message:string, data:any):void{
   console.info(`[${title}]: ${message}`);
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, data}));
 }
 
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function sendError(response:express.Response, error:Error, data?:any):void{
   const title = error.name;
   const message = error.message;
   console.error(`[${title}]: ${message}`);
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, error, data}));
 }
 

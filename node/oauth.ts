@@ -120,10 +120,10 @@ export async function getUserInfo(request:express.Request, willReload:boolean=fa
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn == null) return null;
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
-  const { user_id, user_name, data } = fetchReturn as { user_id:string, user_name:string, data:object };
+  const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:string, user_name:string, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
-  await setSession(request, { userInfo:{ userId:user_id, userName:user_name, data, expiresAt } });
-  return { userId: user_id, userName:user_name, data, expiresAt };
+  await setSession(request, { userInfo:{ userId, userName, data, expiresAt } });
+  return { userId, userName, data, expiresAt };
 }
 
 ///////////////////////////////////// [ E N D P O I N T ] /////////////////////////////////////
