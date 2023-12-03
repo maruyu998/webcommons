@@ -158,7 +158,7 @@ export async function processCallbackThenRedirect(request:express.Request, respo
   // post to access_token_uri with body { grant_type=authorization_code, code, redirect_uri, code_verifier }
   // response: { access_token, token_type, expires_in(second), refresh_token, scope }
   await oauth2.code.getToken(request.originalUrl, { body: { code_verifier: codeVerifier } })
-  .catch((error:Error)=>{console.log(error); sendError(response, error); throw error;})
+  .catch((error:Error)=>{sendError(response, error); throw error;})
   .then(async token=>{
     const { 
       access_token: accessToken, 
