@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import mconfig from "./mconfig";
 
 const AGGREGATOR_URI = mconfig.get("aggregatorUri");
-if(AGGREGATOR_URI == undefined) throw new Error("aggregatorUri is not defined on config.");
+if(AGGREGATOR_URI === undefined) throw new Error("aggregatorUri is not defined on config.");
 
 export async function getData(
   service: string, 

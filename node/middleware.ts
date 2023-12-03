@@ -9,12 +9,15 @@ export async function requireSignin(
   response:express.Response, 
   next:express.NextFunction
 ){
-  const currentUserInfo = await getUserInfo(request);
-  if(currentUserInfo) {
+  await getUserInfo(request)
+  .then(currentUserInfo=>{
     response.locals.currentUserInfo = currentUserInfo;
-    return next();
-  }
-  sendError(response, new AuthenticationError("Sign in is required"));
+    next();
+  })
+  .catch(error=>{
+    if(error instanceof AuthenticationError) return response.redirect("/signin");
+    sendError(response, new AuthenticationError("Sign in is required"));
+  })
 }
 
 export function requireQueryParams(...paramNames:string[]){

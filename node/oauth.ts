@@ -76,7 +76,7 @@ async function clearSession(request:express.Request, keys:("auth"|"token"|"userI
 // tokens
 async function refreshAccessToken(request:express.Request):Promise<boolean>{
   const { token } = getSession(request);
-  if(token === undefined) throw new Error("token is not saved");
+  if(token === undefined) throw new AuthenticationError("token is not saved");
   const { accessToken, tokenType, refreshToken, scope } = token;
   const tokenClient = new ClientOAuth2.Token(oauth2, {
     access_token: accessToken, 
