@@ -1,4 +1,4 @@
-import MDate from "./mdate";
+import Mdate from "./mdate";
 
 export function isString(value:unknown):value is string{
   return (typeof value == "string");
@@ -16,8 +16,8 @@ export function isDate(value:unknown):value is Date{
   return (value instanceof Date);
 }
 
-export function isMdate(value:unknown):value is MDate{
-  return (value instanceof MDate);
+export function isMdate(value:unknown):value is Mdate{
+  return (value instanceof Mdate);
 }
 
 export function isArray(value:unknown):value is Array<unknown>{
