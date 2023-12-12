@@ -31,7 +31,7 @@ const OAUTH_TOKEN_PATH = mconfig.get("oauthTokenPath");
 const OAUTH_AUTHORIZE_PATH = mconfig.get("oauthAuthorizePath");
 const OAUTH_USER_INFO_PATH = mconfig.get("oauthUserInfoPath");
 
-const USER_INFO_KEEP_DURATION = mconfig.get("userInfoKeepDuration");
+const USER_INFO_KEEP_DURATION = mconfig.getNumber("userInfoKeepDuration");
 
 const SCOPES = ["user"];
 
@@ -84,17 +84,18 @@ async function refreshAccessToken(request:express.Request):Promise<boolean>{
     refresh_token: refreshToken, 
     scope
   });
-  const isSuccess = await tokenClient.refresh().then(async token=>{
-      if(token.data.name === "AuthenticationError") throw new AuthenticationError("refreshToken is expired");
-      const { accessToken, tokenType, refreshToken, scope, expiresAt } = token.data;
-      await regenerateSession(request);
-      await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
-      return true;
-    })
-    .catch(error=>{
-      console.error(error);
-      return false;
-    });
+  const isSuccess = await tokenClient.refresh()
+  .then(async token=>{
+    if(token.data.name === "AuthenticationError") throw new AuthenticationError("refreshToken is expired");
+    const { accessToken, tokenType, refreshToken, scope, expiresAt } = token.data;
+    await regenerateSession(request);
+    await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
+    return true;
+  })
+  .catch(error=>{
+    console.error(error);
+    return false;
+  });
   return isSuccess;
 }
 

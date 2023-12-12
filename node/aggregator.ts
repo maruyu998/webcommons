@@ -4,6 +4,15 @@ import mconfig from "./mconfig";
 const AGGREGATOR_URI = mconfig.get("aggregatorUri");
 if(AGGREGATOR_URI === undefined) throw new Error("aggregatorUri is not defined on config.");
 
+function createHeader(bearer?:string){
+  const header = {
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+  };
+  if(bearer) header["Authorization"] = `Bearer ${bearer}`;
+  return header
+}
+
 export async function getData(
   service: string, 
   datatype: string,
@@ -15,12 +24,8 @@ export async function getData(
   url.searchParams.append("userId", userId);
   for(const query of queries) url.searchParams.append(query.key, query.value);
   if(webhooks.length > 0) url.searchParams.append("webhooks", webhooks.join(","));
-  return await fetch(url.href, {
-    headers: {
-      // "Authorization": "Bearer ",
-      "Accept": "application/json",
-      "Content-Type": "application/json"
-    }
+  return await fetch(url.href, { 
+    headers: createHeader() 
   }).then(res=>res.json() as object);
 }
 
@@ -35,11 +40,7 @@ export async function postData(
   url.searchParams.append("userId", userId);
   if(webhooks.length > 0) url.searchParams.append("webhooks", webhooks.join(","));
   return await fetch(url.href, {
-    headers: {
-      // "Authorization": "Bearer ",
-      "Accept": "application/json",
-      "Content-Type": "application/json"
-    },
+    headers: createHeader(),
     method:"POST",
     body: JSON.stringify({data})
   }).then(res=>res.json() as object);
@@ -62,11 +63,7 @@ export async function updateData(
   while(true){
     try{
       return await fetch(url.href, {
-        headers: {
-          // "Authorization": "Bearer ",
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
+        headers: createHeader(),
         method:"PUT",
         body: JSON.stringify({data})
       }).then(res=>res.json() as object);
@@ -78,22 +75,18 @@ export async function updateData(
 }
 
 export async function deleteData(
-    service: string,
-    datatype: string,
-    userId: string,
-    queries:{key:string, value:string}[]=[],
-    webhooks: string[]=[]
+  service: string,
+  datatype: string,
+  userId: string,
+  queries:{key:string, value:string}[]=[],
+  webhooks: string[]=[]
 ){
-    const url = new URL(`${AGGREGATOR_URI}/${service}/${datatype}`);
-    url.searchParams.append("userId", userId);
-    for(const query of queries) url.searchParams.append(query.key, query.value);
-    if(webhooks.length > 0) url.searchParams.append("webhooks", webhooks.join(","));
-    return await fetch(url.href, {
-        headers: {
-            // "Authorization": "Bearer ",
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        },
-        method:"DELETE"
-    }).then(res=>res.json() as object);
+  const url = new URL(`${AGGREGATOR_URI}/${service}/${datatype}`);
+  url.searchParams.append("userId", userId);
+  for(const query of queries) url.searchParams.append(query.key, query.value);
+  if(webhooks.length > 0) url.searchParams.append("webhooks", webhooks.join(","));
+  return await fetch(url.href, {
+    headers: createHeader(),
+    method:"DELETE"
+  }).then(res=>res.json() as object);
 }
