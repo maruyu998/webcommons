@@ -7,7 +7,7 @@ export type PacketSourceDataType = BasicSourceTypes
                                   |{[key:string]:PacketSourceDataType[]}
                                   |PacketSourceDataType[];
 
-type ValueType = string|number|boolean|null|ValueType[]|PacketConvertedData[]|{[key:string]:PacketConvertedData};
+type ValueType = string|number|boolean|null|{time:number,tz:number|null}|ValueType[]|PacketConvertedData[]|{[key:string]:PacketConvertedData};
 export type PacketConvertedData = {
   type: "string"|"number"|"boolean"|"date"|"mdate"|"array"|"object"|"null",
   data: ValueType
