@@ -43,4 +43,4 @@ export function getIpAddress(request:express.Request):string{
     return request.socket.remoteAddress;
   }
   return "0.0.0.0";
-};
+}

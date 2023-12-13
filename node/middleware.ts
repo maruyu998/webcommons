@@ -17,7 +17,7 @@ export async function requireSignin(
   .catch(error=>{
     if(error instanceof AuthenticationError) return response.redirect("/signin");
     sendError(response, new AuthenticationError("Sign in is required"));
-  })
+  });
 }
 
 export function requireQueryParams(...paramNames:string[]){

@@ -47,8 +47,8 @@ export function useStateRef<T>(defaultValue:T):[T, (v:T)=>void, MutableRefObject
   return [value, newSetter, ref];
 }
 
-type SessionEncoder<T> = {(param:T):any}
-type SessionDecoder<T> = {(param:any):T}
+type SessionEncoder<T> = {(param:T):any};
+type SessionDecoder<T> = {(param:any):T};
 export function useStateSession<T>(
   key:string, 
   defaultValue:T,
@@ -68,19 +68,19 @@ export function useStateSession<T>(
     .then(value=>{
       setter(value as T);
       setIsInitialized(true);
-    })
-  }, [])
+    });
+  }, []);
   useEffect(()=>{
     if(!isInitialized) return;
     saveSessionData(key, encoder ? encoder(value) : value)
-    .catch(error=>console.error(error))
-  }, [value])
-  return [ value, setter, isInitialized ]
+    .catch(error=>console.error(error));
+  }, [value]);
+  return [ value, setter, isInitialized ];
 }
 
-type URLSearchParamEncoder<T> = {(param:T):string}
-type URLSearchParamDecoder<T> = {(param:string):T}
-export function useStateURLSearchParamType<T>(
+type URLSearchParamEncoder<T> = {(param:T):string};
+type URLSearchParamDecoder<T> = {(param:string):T};
+export function useStateUrlSearchParamType<T>(
   name:string,
   defaultValue:T,
   encoder:URLSearchParamEncoder<T>,
@@ -95,6 +95,6 @@ export function useStateURLSearchParamType<T>(
       ...Object.fromEntries(searchParams.entries()), 
       [name]:encoder(state)
     }
-  )}, [state])
-  return [state, setState]
+  );}, [state]);
+  return [state, setState];
 }

@@ -110,7 +110,7 @@ async function getAccessToken(request:express.Request):Promise<string>{
 }
 
 // userinfo
-export async function getUserInfo(request:express.Request, willReload:boolean=false):Promise<UserInfoType|null>{
+export async function getUserInfo(request:express.Request, willReload=false):Promise<UserInfoType|null>{
   const { userInfo } = getSession(request);
   if(willReload === false && userInfo != null && userInfo.expiresAt.getTime() > Date.now()) return userInfo;
   const accessToken = await getAccessToken(request).catch(()=>null);
@@ -202,7 +202,7 @@ export function addCors(request:express.Request, response:express.Response, next
   })(request, response, next);
 }
 
-export async function getData(request:express.Request, reload:boolean=false){
+export async function getData(request:express.Request, reload=false){
   const userInfo = await getUserInfo(request, reload);
   if(userInfo == null) throw new PermissionError("user is invalid");
   return userInfo.data || {};
