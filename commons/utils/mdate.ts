@@ -1,5 +1,5 @@
 import { DAY, HOUR, MINUTE } from "./time";
-import { isNumber, isString } from "./types";
+import { isNumber } from "./types";
 
 type OneToNine = 1|2|3|4|5|6|7|8|9;
 type ZeroToNine = 0|1|2|3|4|5|6|7|8|9;
@@ -239,6 +239,11 @@ export default class Mdate {
     if(unit == "minute") return (this.time - this.set(0,"second").set(0,"millisecond").time) / MINUTE;
     throw new Error(`[not reachable] unit error, unit: ${unit}`);
   }
+
+  isBefore = (mdate:Mdate) => this.time < mdate.time;
+  isSame = (mdate:Mdate) => this.time == mdate.time;
+  isAfter = (mdate:Mdate) => this.time > mdate.time;
+
 
   // getDateString(timezone:string):YYYYMMDD{
   //     return this.format("YYYY-MM-DD",timezone) as YYYYMMDD;

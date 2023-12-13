@@ -16,8 +16,8 @@ declare module "express-session" {
 
 mongoose.Promise = global.Promise;
 mongoose.connect(mconfig.get("mongoPath")).catch((error)=>{console.error(error);});
-mongoose.connection.on("error", function(err) {
-  console.error("MongoDB connection error: " + err);
+mongoose.connection.on("error", function(error:Error) {
+  console.error(`MongoDB connection error: [${error.name}] ${error.message}`);
   process.exit(-1);
 });
 
