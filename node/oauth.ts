@@ -175,8 +175,7 @@ export async function processCallbackThenRedirect(request:express.Request, respo
       expires_at: expiresAt
     } = token.data;
     await regenerateSession(request);
-    // await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
-    await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(Date.now() + 1*60*1000) } });
+    await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
     return response.redirect(returnTo || "/");
   })
   .catch(()=>null);
