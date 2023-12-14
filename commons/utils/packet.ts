@@ -46,22 +46,22 @@ export function deconvertPacket(packet:Packet): DecomposedPacket{
       console.error("packet:", packet);
       throw new Error("packet parcing error");
     }
-    if(cdata.type == "string") return String(cdata.data);
-    if(cdata.type == "number") return Number(cdata.data);
-    if(cdata.type == "boolean") return Boolean(cdata.data);
-    if(cdata.type == "date") return new Date(cdata.data as number);
-    if(cdata.type == "mdate") return Mdate.fromJson(cdata.data as {time:number, tz:number});
-    if(cdata.type == "array") return (cdata.data as PacketConvertedData[]).map(o=>deconvert(o));
-    if(cdata.type == "object") return Object.assign({}, 
+    if(cdata.type === "string") return String(cdata.data);
+    if(cdata.type === "number") return Number(cdata.data);
+    if(cdata.type === "boolean") return Boolean(cdata.data);
+    if(cdata.type === "date") return new Date(cdata.data as number);
+    if(cdata.type === "mdate") return Mdate.fromJson(cdata.data as {time:number, tz:number});
+    if(cdata.type === "array") return (cdata.data as PacketConvertedData[]).map(o=>deconvert(o));
+    if(cdata.type === "object") return Object.assign({}, 
       ...Object.entries(cdata.data as {[key:string]:PacketConvertedData}).map(([k,v])=>({[k]:deconvert(v)}))
     ) as {[key:string]:PacketSourceDataType};
-    if(cdata.type == "null") return null;
+    if(cdata.type === "null") return null;
     console.error(cdata, typeof cdata.data);
     throw new Error("not implemented in packet conditions");
   }
   const { title, message, error, convertedData } = packet;
   const retObject:DecomposedPacket = { title, message };
-  if(convertedData != undefined) retObject.data = deconvert(convertedData);
+  if(convertedData !== undefined) retObject.data = deconvert(convertedData);
   if(error){
     const errorDeconverted = new Error(error.message, { cause: error.cause });
     errorDeconverted.name = error.name;
