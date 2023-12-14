@@ -87,7 +87,13 @@ async function refreshAccessToken(request:express.Request):Promise<boolean>{
   const isSuccess = await tokenClient.refresh()
   .then(async token=>{
     if(token.data.name === "AuthenticationError") throw new AuthenticationError("refreshToken is expired");
-    const { accessToken, tokenType, refreshToken, scope, expiresAt } = token.data;
+    const { 
+      access_token: accessToken, 
+      token_type: tokenType, 
+      refresh_token: refreshToken, 
+      scope, 
+      expires_at: expiresAt 
+    } = token.data;
     await regenerateSession(request);
     await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
     return true;
@@ -129,7 +135,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
 
 ///////////////////////////////////// [ E N D P O I N T ] /////////////////////////////////////
 export async function redirectToSignin(request:express.Request, response:express.Response):Promise<void>{
-  const returnTo = "";
+  const returnTo = request.url;
   const state = randomUUID();
   const { code_verifier: codeVerifier, code_challenge: codeChallenge } = pkceChallenge();
   await setSession(request, { auth:{ codeVerifier, state, returnTo } });
