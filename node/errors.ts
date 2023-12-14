@@ -39,3 +39,10 @@ export class ConfigError extends Error {
     this.name = "ConfigError";
   }
 }
+
+export class DataNotFoundError extends Error {
+  constructor(objectName:string){
+    super(`${objectName} is not found`);
+    this.name = "DataNotFoundError";
+  }
+}

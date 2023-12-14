@@ -51,7 +51,7 @@ type TypeOfLocaleFormat = typeof LOCALE_FORMATS;
 export type Locale = keyof TypeOfLocaleFormat;
 
 function zeroFill(num:number, digits:number): string{
-  return ( Array(digits).join('0') + num ).slice( -digits );
+  return `${Array(digits).join("0")}${num}`.slice(-digits);
 }
 function getDayOfWeek(locale:Locale, length:"long"|"medium"|"short", index:number):string{
   return LOCALE_FORMATS[locale]["dayOfWeek"][length][index%7];
@@ -61,7 +61,8 @@ function getAmpm(locale:Locale, upperOrLower:"upper"|"lower", ampm:0|1){
 }
 
 export default class Mdate {
-  private time: number = 0;
+  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+  private readonly time: number = 0;
   private tz: number|null = null;
   private locale: Locale|null = null;
 
@@ -83,6 +84,7 @@ export default class Mdate {
   toIsoString = () => this.toDate().toISOString();
   static now = () => new Mdate();
   clone = () => new Mdate(this.time, this.tz, this.locale);
+  get unix() { return this.time; }
   
   get(target:Unit){
     if(this.tz == null) throw new Error("set timezone.");
@@ -93,11 +95,22 @@ export default class Mdate {
     if(target == "minute") return this.getMinutes();
     if(target == "second") return this.getSeconds();
     if(target == "millisecond") return this.getMilliSeconds();
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
+  addMs = (ms:number) => new Mdate(this.time + ms);
+
   add(value:number, target:Unit){
-    
-  //     return new Mdate(moment(this.time).add(diff,unit).valueOf());
+    if(this.tz == null) throw new Error("set timezone.");
+    if(target == "year") return this.addFullYear(value);
+    if(target == "month") return this.addMonth(value);
+    if(target == "date") return this.addDate(value);
+    if(target == "hour") return this.addHour(value);
+    if(target == "minute") return this.addMinute(value);
+    if(target == "second") return this.addSecond(value);
+    if(target == "millisecond") return this.addMilliSecond(value);
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    throw new Error(`[not reachable] target error, target: ${target}`);
   }
   set(value:number, target:Unit){
     if(this.tz == null) throw new Error("set timezone.");
@@ -108,6 +121,7 @@ export default class Mdate {
     if(target == "minute") return this.setMinute(value);
     if(target == "second") return this.setSecond(value);
     if(target == "millisecond") return this.setMilliSecond(value);
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
   setTz(tz:number|TimeZone):Mdate{ 
@@ -149,11 +163,8 @@ export default class Mdate {
   private getZeroSecondsStr =      () => zeroFill(this.getSeconds(), 2);
   private getMilliZeroSecondsStr = () => zeroFill(this.getMilliSeconds(), 3);
 
-  private setFakeDate(time:number){ 
-    const clone = this.clone();
-    clone.time = clone.time - (time - clone.fakeDate.getTime()); 
-    return clone;
-  }
+  private setFakeDate = (time:number) => new Mdate(this.time - (time - this.fakeDate.getTime()));
+  
   private setFullYear =  (year:number) => this.setFakeDate(this.fakeDate.setUTCFullYear(year));
   private setMonth =    (month:number) => this.setFakeDate(this.fakeDate.setUTCMonth(month));
   private setDate =      (date:number) => this.setFakeDate(this.fakeDate.setUTCDate(date));
@@ -162,9 +173,17 @@ export default class Mdate {
   private setSecond =  (second:number) => this.setFakeDate(this.fakeDate.setUTCSeconds(second));
   private setMilliSecond = (ms:number) => this.setFakeDate(this.fakeDate.setUTCMilliseconds(ms));
 
+  private addFullYear =  (year:number) => this.setFullYear(this.getFullYear() + year);
+  private addMonth =    (month:number) => this.setMonth(this.getMonth() + month);
+  private addDate =      (date:number) => this.setDate(this.getDate() + date);
+  private addHour =      (hour:number) => this.setHour(this.getHours() + hour);
+  private addMinute =  (minute:number) => this.setMinute(this.getMinutes() + minute);
+  private addSecond =  (second:number) => this.setSecond(this.getSeconds() + second);
+  private addMilliSecond = (ms:number) => this.setMilliSecond(this.getMilliSeconds() + ms);
+
   private getDayOfWeek(length:"short"|"medium"|"long"){
     if(this.locale == null) throw new Error("set locale.");
-    return getDayOfWeek(this.locale, length, this.getDay())
+    return getDayOfWeek(this.locale, length, this.getDay());
   }
   private getAmpm(upperOrLower:"upper"|"lower"){
     if(this.locale == null) throw new Error("set locale.");
@@ -237,6 +256,7 @@ export default class Mdate {
     if(unit == "date") return (this.time - this.set(0,"hour").set(0,"minute").set(0,"second").set(0,"millisecond").time) / DAY;
     if(unit == "hour") return (this.time - this.set(0,"minute").set(0,"second").set(0,"millisecond").time) / HOUR;
     if(unit == "minute") return (this.time - this.set(0,"second").set(0,"millisecond").time) / MINUTE;
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] unit error, unit: ${unit}`);
   }
 
