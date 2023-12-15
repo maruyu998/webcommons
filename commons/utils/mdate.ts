@@ -9,6 +9,7 @@ type DD = `${0}${OneToNine}` | `${1|2}${ZeroToNine}` | `3${0|1}`;
 export type YYYYMMDD = `${YYYY}-${MM}-${DD}`;
 
 export const TIME_ZONES = {
+  "UTC": 0,
   "Asia/Tokyo": 9
 } as const;
 type TypeOfTimeZone = typeof TIME_ZONES;
@@ -50,6 +51,11 @@ export const LOCALE_FORMATS = {
 type TypeOfLocaleFormat = typeof LOCALE_FORMATS;
 export type Locale = keyof TypeOfLocaleFormat;
 
+function replace(str:string, regex:RegExp, func:()=>string){
+  if(regex.test(str)) str = str.replace(regex, func());
+  return str;
+}
+
 function zeroFill(num:number, digits:number): string{
   return `${Array(digits).join("0")}${num}`.slice(-digits);
 }
@@ -76,7 +82,7 @@ export default class Mdate {
   private get fakeDate(){
     const date = this.toDate();
     if(this.tz == null) throw new Error("set timezone.");
-    date.setHours(date.getHours()-this.tz);
+    date.setHours(date.getHours()+this.tz);
     return date;
   }
   toDate = () => new Date(this.time);
@@ -86,15 +92,18 @@ export default class Mdate {
   clone = () => new Mdate(this.time, this.tz, this.locale);
   get unix() { return this.time; }
   
-  get(target:Unit){
-    if(this.tz == null) throw new Error("set timezone.");
-    if(target == "year") return this.getFullYear();
-    if(target == "month") return this.getMonth();
-    if(target == "date") return this.getDate();
-    if(target == "hour") return this.getHours();
-    if(target == "minute") return this.getMinutes();
-    if(target == "second") return this.getSeconds();
-    if(target == "millisecond") return this.getMilliSeconds();
+  get(target:Unit, timezone?:TimeZone){
+    const mdate = this.clone();
+    if(timezone) mdate.setTz(timezone);
+
+    if(mdate.tz == null) throw new Error("set timezone.");
+    if(target == "year") return mdate.getFullYear();
+    if(target == "month") return mdate.getMonth();
+    if(target == "date") return mdate.getDate();
+    if(target == "hour") return mdate.getHours();
+    if(target == "minute") return mdate.getMinutes();
+    if(target == "second") return mdate.getSeconds();
+    if(target == "millisecond") return mdate.getMilliSeconds();
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
@@ -190,32 +199,35 @@ export default class Mdate {
     return getAmpm(this.locale, upperOrLower, this.getHours() < 12 ? 0 : 1);
   }
 
-  format(format:string, timezone?:string): string{
+  format(format:string, timezone?:TimeZone, locale?:Locale): string{
     let text = format;
+    const mdate = this.clone();
+    if(timezone) mdate.setTz(timezone);
+    if(locale) mdate.setLocale(locale);
 
-    text = text.replace(/(?<!Y)YYYY(?!Y)/, this.getFullYearStr());
-    text = text.replace(/(?<!M)MM(?!M)/, this.getZeroMonthStr());
-    text = text.replace(/(?<!M)M(?!M)/, this.getMonthStr());
-    text = text.replace(/(?<!D)DD(?!D)/, this.getZeroDateStr());
-    text = text.replace(/(?<!D)D(?!D)/, this.getDateStr());
+    text = replace(text, /(?<!Y)YYYY(?!Y)/, ()=>mdate.getFullYearStr());
+    text = replace(text, /(?<!M)MM(?!M)/, ()=>mdate.getZeroMonthStr());
+    text = replace(text, /(?<!M)M(?!M)/, ()=>mdate.getMonthStr());
+    text = replace(text, /(?<!D)DD(?!D)/, ()=>mdate.getZeroDateStr());
+    text = replace(text, /(?<!D)D(?!D)/, ()=>mdate.getDateStr());
 
-    text = text.replace(/(?<!d)dddd(?!d)/, this.getDayOfWeek("long"));
-    text = text.replace(/(?<!d)ddd(?!d)/, this.getDayOfWeek("medium"));
-    text = text.replace(/(?<!d)dd(?!d)/, this.getDayOfWeek("short"));
-    text = text.replace(/(?<!d)d(?!d)/, this.getDayStr()); // 0-6
+    text = replace(text, /(?<!d)dddd(?!d)/, ()=>mdate.getDayOfWeek("long"));
+    text = replace(text, /(?<!d)ddd(?!d)/, ()=>mdate.getDayOfWeek("medium"));
+    text = replace(text, /(?<!d)dd(?!d)/, ()=>mdate.getDayOfWeek("short"));
+    text = replace(text, /(?<!d)d(?!d)/, ()=>mdate.getDayStr()); // 0-6
 
-    text = text.replace(/(?<!A)A(?!A)/, this.getAmpm("upper"));
-    text = text.replace(/(?<!a)a(?!a)/, this.getAmpm("lower"));
+    text = replace(text, /(?<!A)A(?!A)/, ()=>mdate.getAmpm("upper"));
+    text = replace(text, /(?<!a)a(?!a)/, ()=>mdate.getAmpm("lower"));
 
-    text = text.replace(/(?<!H)HH(?!H)/, this.getZeroHoursStr());
-    text = text.replace(/(?<!H)H(?!H)/, this.getHoursStr());
-    text = text.replace(/(?<!h)hh(?!h)/, this.getZeroHalfHourStr());
-    text = text.replace(/(?<!h)h(?!h)/, this.getHalfHourStr());
-    text = text.replace(/(?<!m)mm(?!m)/, this.getZeroMinutesStr());
-    text = text.replace(/(?<!m)m(?!m)/, this.getMinutesStr());
-    text = text.replace(/(?<!s)ss(?!s)/, this.getZeroSecondsStr());
-    text = text.replace(/(?<!s)s(?!s)/, this.getSecondsStr());
-    text = text.replace(/(?<!S)SSS(?!S)/, this.getMilliZeroSecondsStr());
+    text = replace(text, /(?<!H)HH(?!H)/, ()=>mdate.getZeroHoursStr());
+    text = replace(text, /(?<!H)H(?!H)/, ()=>mdate.getHoursStr());
+    text = replace(text, /(?<!h)hh(?!h)/, ()=>mdate.getZeroHalfHourStr());
+    text = replace(text, /(?<!h)h(?!h)/, ()=>mdate.getHalfHourStr());
+    text = replace(text, /(?<!m)mm(?!m)/, ()=>mdate.getZeroMinutesStr());
+    text = replace(text, /(?<!m)m(?!m)/, ()=>mdate.getMinutesStr());
+    text = replace(text, /(?<!s)ss(?!s)/, ()=>mdate.getZeroSecondsStr());
+    text = replace(text, /(?<!s)s(?!s)/, ()=>mdate.getSecondsStr());
+    text = replace(text, /(?<!S)SSS(?!S)/, ()=>mdate.getMilliZeroSecondsStr());
 
     return text;
   }
