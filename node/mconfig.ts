@@ -13,7 +13,5 @@ function getNumber(key:string):number{
   return value;
 }
 
-export default {
-  get,
-  getNumber
-};
+const asDefault = { get, getNumber };
+export default asDefault;
