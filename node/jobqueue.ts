@@ -84,3 +84,7 @@ export async function setStartJob(jobId:string){
 export async function setEndJob(jobId:string){
   await JobModel.findOneAndUpdate({ jobId },{ state:"done", endAt:new Date() }).exec();
 }
+
+export async function deleteCompletedJobs(key:string, query:{[key:string]:any}){
+  await JobModel.deleteMany({ key, state:"done", ...query }).exec();
+}
