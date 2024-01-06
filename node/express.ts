@@ -9,14 +9,14 @@ export async function regenerateSession(request:express.Request){
   await new Promise<void>((resolve)=>request.session.regenerate(()=>{resolve();}));
 }
 
-export function sendMessage(response:express.Response, title:string, message:string){
-  console.info(`[${title}]: ${message}`);
+export function sendMessage(response:express.Response, title:string, message:string, verbose:boolean=true){
+  if(verbose) console.info(`[${title}]: ${message}`);
   response.json(convertPacket({title, message}));
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function sendData(response:express.Response, title:string, message:string, data:any):void{
-  console.info(`[${title}]: ${message}`);
+export function sendData(response:express.Response, title:string, message:string, data:any, verbose:boolean=true):void{
+  if(verbose) console.info(`[${title}]: ${message}`);
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, data}));
 }

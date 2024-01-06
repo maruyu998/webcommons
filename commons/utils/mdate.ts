@@ -172,7 +172,7 @@ export default class Mdate {
   private getZeroSecondsStr =      () => zeroFill(this.getSeconds(), 2);
   private getMilliZeroSecondsStr = () => zeroFill(this.getMilliSeconds(), 3);
 
-  private setFakeDate = (time:number) => new Mdate(this.time - (time - this.fakeDate.getTime()));
+  private setFakeDate = (time:number) => new Mdate(this.time - (time - this.fakeDate.getTime()), this.tz, this.locale);
   
   private setFullYear =  (year:number) => this.setFakeDate(this.fakeDate.setUTCFullYear(year));
   private setMonth =    (month:number) => this.setFakeDate(this.fakeDate.setUTCMonth(month));
@@ -211,14 +211,6 @@ export default class Mdate {
     text = replace(text, /(?<!D)DD(?!D)/, ()=>mdate.getZeroDateStr());
     text = replace(text, /(?<!D)D(?!D)/, ()=>mdate.getDateStr());
 
-    text = replace(text, /(?<!d)dddd(?!d)/, ()=>mdate.getDayOfWeek("long"));
-    text = replace(text, /(?<!d)ddd(?!d)/, ()=>mdate.getDayOfWeek("medium"));
-    text = replace(text, /(?<!d)dd(?!d)/, ()=>mdate.getDayOfWeek("short"));
-    text = replace(text, /(?<!d)d(?!d)/, ()=>mdate.getDayStr()); // 0-6
-
-    text = replace(text, /(?<!A)A(?!A)/, ()=>mdate.getAmpm("upper"));
-    text = replace(text, /(?<!a)a(?!a)/, ()=>mdate.getAmpm("lower"));
-
     text = replace(text, /(?<!H)HH(?!H)/, ()=>mdate.getZeroHoursStr());
     text = replace(text, /(?<!H)H(?!H)/, ()=>mdate.getHoursStr());
     text = replace(text, /(?<!h)hh(?!h)/, ()=>mdate.getZeroHalfHourStr());
@@ -228,6 +220,14 @@ export default class Mdate {
     text = replace(text, /(?<!s)ss(?!s)/, ()=>mdate.getZeroSecondsStr());
     text = replace(text, /(?<!s)s(?!s)/, ()=>mdate.getSecondsStr());
     text = replace(text, /(?<!S)SSS(?!S)/, ()=>mdate.getMilliZeroSecondsStr());
+
+    text = replace(text, /(?<!A)A(?!A)/, ()=>mdate.getAmpm("upper"));
+    text = replace(text, /(?<!a)a(?!a)/, ()=>mdate.getAmpm("lower"));
+
+    text = replace(text, /(?<!d)dddd(?!d)/, ()=>mdate.getDayOfWeek("long"));
+    text = replace(text, /(?<!d)ddd(?!d)/, ()=>mdate.getDayOfWeek("medium"));
+    text = replace(text, /(?<!d)dd(?!d)/, ()=>mdate.getDayOfWeek("short"));
+    text = replace(text, /(?<!d)d(?!d)/, ()=>mdate.getDayStr()); // 0-6
 
     return text;
   }

@@ -8,6 +8,8 @@ function* rangeTo(end:number){
   return null;
 }
 
+export function range(start:number, end:number):Generator<number, null, unknown>;
+export function range(end:number):Generator<number, null, unknown>;
 export function range(a:number, b:number|null=null){
   if(b === null) return rangeTo(a);
   else return rangeBetween(a,b);
