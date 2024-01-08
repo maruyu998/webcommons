@@ -8,6 +8,19 @@ type MM = `0${OneToNine}` | `1${0|1|2}`;
 type DD = `${0}${OneToNine}` | `${1|2}${ZeroToNine}` | `3${0|1}`;
 export type YYYYMMDD = `${YYYY}-${MM}-${DD}`;
 
+export function isYYYYMMDD(str:string){
+  if(str.length != "YYYY-MM-DD".length) return false;
+  if(str[4] != "-" || str[7] != "-") return false;
+  const year = Number(str.slice(0, 4));
+  const month = Number(str.slice(5, 7));
+  const date = Number(str.slice(8, 10));
+  if(isNaN(year) || isNaN(month) || isNaN(date)) return false;
+  if(year < 1900 || year > 2100) return false;
+  if(month <= 0 || month > 12) return false;
+  if(date <= 0 || date > 31) return false;
+  return true;
+}
+
 export const TIME_ZONES = {
   "UTC": 0,
   "Asia/Tokyo": 9
@@ -172,7 +185,7 @@ export default class Mdate {
   private getZeroSecondsStr =      () => zeroFill(this.getSeconds(), 2);
   private getMilliZeroSecondsStr = () => zeroFill(this.getMilliSeconds(), 3);
 
-  private setFakeDate = (time:number) => new Mdate(this.time - (time - this.fakeDate.getTime()), this.tz, this.locale);
+  private setFakeDate = (time:number) => new Mdate(this.time - (this.fakeDate.getTime() - time), this.tz, this.locale);
   
   private setFullYear =  (year:number) => this.setFakeDate(this.fakeDate.setUTCFullYear(year));
   private setMonth =    (month:number) => this.setFakeDate(this.fakeDate.setUTCMonth(month));
@@ -190,6 +203,16 @@ export default class Mdate {
   private addSecond =  (second:number) => this.setSecond(this.getSeconds() + second);
   private addMilliSecond = (ms:number) => this.setMilliSecond(this.getMilliSeconds() + ms);
 
+  private getTzString(colon:boolean){
+    if(this.tz == null) throw new Error("set timezone.");
+    let tzStr = "";
+    tzStr += (this.tz >= 0) ? "+" : "-";
+    const tzTmp = Math.abs(this.tz);
+    tzStr += zeroFill(Math.floor(tzTmp), 2);
+    if(colon) tzStr += ":";
+    tzStr += zeroFill((tzTmp - Math.floor(tzTmp)) * 60, 2);
+    return tzStr;
+  }
   private getDayOfWeek(length:"short"|"medium"|"long"){
     if(this.locale == null) throw new Error("set locale.");
     return getDayOfWeek(this.locale, length, this.getDay());
@@ -220,6 +243,9 @@ export default class Mdate {
     text = replace(text, /(?<!s)ss(?!s)/, ()=>mdate.getZeroSecondsStr());
     text = replace(text, /(?<!s)s(?!s)/, ()=>mdate.getSecondsStr());
     text = replace(text, /(?<!S)SSS(?!S)/, ()=>mdate.getMilliZeroSecondsStr());
+
+    text = replace(text, /(?<!Z)ZZ(?!Z)/, ()=>mdate.getTzString(false));
+    text = replace(text, /(?<!Z)Z(?!Z)/, ()=>mdate.getTzString(true));
 
     text = replace(text, /(?<!A)A(?!A)/, ()=>mdate.getAmpm("upper"));
     text = replace(text, /(?<!a)a(?!a)/, ()=>mdate.getAmpm("lower"));
