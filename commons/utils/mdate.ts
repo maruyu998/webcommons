@@ -253,7 +253,7 @@ export default class Mdate {
     text = replace(text, /(?<!d)dddd(?!d)/, ()=>mdate.getDayOfWeek("long"));
     text = replace(text, /(?<!d)ddd(?!d)/, ()=>mdate.getDayOfWeek("medium"));
     text = replace(text, /(?<!d)dd(?!d)/, ()=>mdate.getDayOfWeek("short"));
-    text = replace(text, /(?<!d)d(?!d)/, ()=>mdate.getDayStr()); // 0-6
+    // text = replace(text, /(?<!d)d(?!d)/, ()=>mdate.getDayStr()); // 0-6
 
     return text;
   }
