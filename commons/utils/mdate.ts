@@ -9,8 +9,8 @@ type DD = `${0}${OneToNine}` | `${1|2}${ZeroToNine}` | `3${0|1}`;
 export type YYYYMMDD = `${YYYY}-${MM}-${DD}`;
 
 export function isYYYYMMDD(str:string){
-  if(str.length != "YYYY-MM-DD".length) return false;
-  if(str[4] != "-" || str[7] != "-") return false;
+  if(str.length !== "YYYY-MM-DD".length) return false;
+  if(str[4] !== "-" || str[7] !== "-") return false;
   const year = Number(str.slice(0, 4));
   const month = Number(str.slice(5, 7));
   const date = Number(str.slice(8, 10));
@@ -87,8 +87,8 @@ export default class Mdate {
 
   constructor(time?:number, tz?:number|TimeZone|null, locale?:Locale|null){
     this.time = (time!==undefined) ? time : Date.now();
-    if(tz != undefined || tz!=null) this.setTz(tz);
-    if(locale != undefined) this.setLocale(locale);
+    if(tz !== undefined && tz != null) this.setTz(tz);
+    if(locale !== undefined && locale != null) this.setLocale(locale);
   }
   toJson = () => ({ time: this.time, tz: this.tz });
   static fromJson = ({time, tz}:{time:number, tz:number|null}) => new Mdate(time, tz);
@@ -110,13 +110,13 @@ export default class Mdate {
     if(timezone) mdate.setTz(timezone);
 
     if(mdate.tz == null) throw new Error("set timezone.");
-    if(target == "year") return mdate.getFullYear();
-    if(target == "month") return mdate.getMonth();
-    if(target == "date") return mdate.getDate();
-    if(target == "hour") return mdate.getHours();
-    if(target == "minute") return mdate.getMinutes();
-    if(target == "second") return mdate.getSeconds();
-    if(target == "millisecond") return mdate.getMilliSeconds();
+    if(target === "year") return mdate.getFullYear();
+    if(target === "month") return mdate.getMonth();
+    if(target === "date") return mdate.getDate();
+    if(target === "hour") return mdate.getHours();
+    if(target === "minute") return mdate.getMinutes();
+    if(target === "second") return mdate.getSeconds();
+    if(target === "millisecond") return mdate.getMilliSeconds();
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
@@ -124,30 +124,30 @@ export default class Mdate {
 
   add(value:number, target:Unit){
     if(this.tz == null) throw new Error("set timezone.");
-    if(target == "year") return this.addFullYear(value);
-    if(target == "month") return this.addMonth(value);
-    if(target == "date") return this.addDate(value);
-    if(target == "hour") return this.addHour(value);
-    if(target == "minute") return this.addMinute(value);
-    if(target == "second") return this.addSecond(value);
-    if(target == "millisecond") return this.addMilliSecond(value);
+    if(target === "year") return this.addFullYear(value);
+    if(target === "month") return this.addMonth(value);
+    if(target === "date") return this.addDate(value);
+    if(target === "hour") return this.addHour(value);
+    if(target === "minute") return this.addMinute(value);
+    if(target === "second") return this.addSecond(value);
+    if(target === "millisecond") return this.addMilliSecond(value);
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
   set(value:number, target:Unit){
     if(this.tz == null) throw new Error("set timezone.");
-    if(target == "year") return this.setFullYear(value);
-    if(target == "month") return this.setMonth(value);
-    if(target == "date") return this.setDate(value);
-    if(target == "hour") return this.setHour(value);
-    if(target == "minute") return this.setMinute(value);
-    if(target == "second") return this.setSecond(value);
-    if(target == "millisecond") return this.setMilliSecond(value);
+    if(target === "year") return this.setFullYear(value);
+    if(target === "month") return this.setMonth(value);
+    if(target === "date") return this.setDate(value);
+    if(target === "hour") return this.setHour(value);
+    if(target === "minute") return this.setMinute(value);
+    if(target === "second") return this.setSecond(value);
+    if(target === "millisecond") return this.setMilliSecond(value);
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
   setTz(tz:number|TimeZone):Mdate{ 
-    if(isNumber(tz)) this.tz = tz;
+    if(isNumber(tz)) this.tz = tz as number;
     else if(tz in TIME_ZONES) this.tz = TIME_ZONES[tz];
     else throw new Error(`timezone is not proper. :${tz}`);
     return this;
@@ -291,15 +291,15 @@ export default class Mdate {
   }
 
   getRatio(unit:Extract<Unit, "date"|"hour"|"minute">){
-    if(unit == "date") return (this.time - this.set(0,"hour").set(0,"minute").set(0,"second").set(0,"millisecond").time) / DAY;
-    if(unit == "hour") return (this.time - this.set(0,"minute").set(0,"second").set(0,"millisecond").time) / HOUR;
-    if(unit == "minute") return (this.time - this.set(0,"second").set(0,"millisecond").time) / MINUTE;
+    if(unit === "date") return (this.time - this.set(0,"hour").set(0,"minute").set(0,"second").set(0,"millisecond").time) / DAY;
+    if(unit === "hour") return (this.time - this.set(0,"minute").set(0,"second").set(0,"millisecond").time) / HOUR;
+    if(unit === "minute") return (this.time - this.set(0,"second").set(0,"millisecond").time) / MINUTE;
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] unit error, unit: ${unit}`);
   }
 
   isBefore = (mdate:Mdate) => this.time < mdate.time;
-  isSame = (mdate:Mdate) => this.time == mdate.time;
+  isSame = (mdate:Mdate) => this.time === mdate.time;
   isAfter = (mdate:Mdate) => this.time > mdate.time;
 
   resetTime(timezone?:TimeZone){
@@ -327,15 +327,15 @@ export default class Mdate {
   // }
   static getDiff(a:Mdate, b:Mdate, unit:Unit): number {
       let diff = b.time - a.time;
-      if(unit == "millisecond") return diff;
+      if(unit === "millisecond") return diff;
       diff /= 1000;
-      if(unit == "second") return diff;
+      if(unit === "second") return diff;
       diff /= 60;
-      if(unit == "minute") return diff;
+      if(unit === "minute") return diff;
       diff /= 60;
-      if(unit == "hour") return diff;
+      if(unit === "hour") return diff;
       diff /= 24;
-      if(unit == "date") return diff;
+      if(unit === "date") return diff;
       throw Error("not implemented");
   }
 }
