@@ -302,7 +302,13 @@ export default class Mdate {
   isSame = (mdate:Mdate) => this.time == mdate.time;
   isAfter = (mdate:Mdate) => this.time > mdate.time;
 
-
+  resetTime(timezone?:TimeZone){
+    const mdate = this.clone();
+    if(timezone) mdate.setTz(timezone);
+    if(mdate.tz == null) throw new Error("set timezone.");
+    return mdate.set(0,"hour").set(0,"minute").set(0,"second").set(0,"millisecond");
+  }
+  
   // getDateString(timezone:string):YYYYMMDD{
   //     return this.format("YYYY-MM-DD",timezone) as YYYYMMDD;
   // }
