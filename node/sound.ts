@@ -1,16 +1,20 @@
 import { execSync, exec } from "child_process";
+import { roundDecimalText } from "maruyu-webcommons/commons/utils/number";
 
 export function playSoundFile(filepath:string, volume:number, wait:boolean=false){
-  const command = `play --volume ${volume} "${filepath}" -q`;
+  const volumeText = roundDecimalText(volume, -2);
+  const command = `play --volume ${volumeText} "${filepath}" -q`;
   console.log(`executing > ${command}`);
   if(wait) execSync(command);
   else exec(command);
 }
 
 export function playText(text:string, volume:number, speed:number=1.0, wait:boolean=false){
-  const jdic_path = `/var/lib/mecab/dic/open-jtalk/naist-jdic`;
-  const voice_path = `/usr/share/hts-voice/mei/mei_normal.htsvoice`;
-  const command = `echo "${text}" | open_jtalk -x ${jdic_path} -m "${voice_path}" -r ${speed} -ow /dev/stdout | play --volume ${volume} - -q`;
+  const jdicPath = `/var/lib/mecab/dic/open-jtalk/naist-jdic`;
+  const voicePath = `/usr/share/hts-voice/mei/mei_normal.htsvoice`;
+  const volumeText = roundDecimalText(volume, -2);
+  const speedText = roundDecimalText(speed, -2);
+  const command = `echo "${text}" | open_jtalk -x ${jdicPath} -m "${voicePath}" -r ${speedText} -ow /dev/stdout | play --volume ${volumeText} - -q`;
   console.log(`executing > ${command}`);
   if(wait) execSync(command);
   else exec(command);
