@@ -30,6 +30,7 @@ export function round(number:number, digit:number):number{
 export function roundDecimalText(number:number, digit:number):string{
   const str = Math.round(number * (10 ** (-digit))).toString();
   if(digit == 0) return str.split(".")[0];
-  if(digit < 0) return str.slice(0, digit) + "." + str.slice(digit);
-  return str + "0".repeat(digit);
+  if(digit > 0) return str + "0".repeat(digit);
+  const integerPart = str.slice(0, digit);
+  return (integerPart || "0")  + "." + str.slice(digit);
 }
