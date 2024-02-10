@@ -32,5 +32,5 @@ export function roundDecimalText(number:number, digit:number):string{
   if(digit == 0) return str.split(".")[0];
   if(digit > 0) return str + "0".repeat(digit);
   const integerPart = str.slice(0, digit);
-  return (integerPart || "0")  + "." + str.slice(digit);
+  return (integerPart || "0")  + "." + ("0".repeat(-digit)+str).slice(digit);
 }
