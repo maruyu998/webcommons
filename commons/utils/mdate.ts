@@ -120,7 +120,7 @@ export default class Mdate {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
-  addMs = (ms:number) => new Mdate(this.time + ms);
+  addMs = (ms:number) => new Mdate(this.time + ms, this.tz, this.locale);
 
   add(value:number, target:Unit){
     if(this.tz == null) throw new Error("set timezone.");
@@ -169,7 +169,7 @@ export default class Mdate {
 
   private getFullYearStr =     () => this.getFullYear().toString();
   private getMonthStr =        () => (this.getMonth() + 1).toString();
-  private getDateStr =         () => (this.getDate(), 2).toString();
+  private getDateStr =         () => this.getDate().toString();
   private getDayStr =          () => this.getDay().toString();
   private getHoursStr =        () => this.getHours().toString(); 
   private getHalfHourStr =     () => (this.getHours()%12).toString();
@@ -258,11 +258,12 @@ export default class Mdate {
     return text;
   }
 
-  static parse(text:string, timezone?:number|string, format?:string):Mdate{
+  static parse(text:string, timezone?:number|TimeZone, format?:string):Mdate{
     if(timezone && format){
-      // timezone section is ignored in text
-      return this.parseFormat(text, format);
+      // timezone section in text is ignored
+      return this.parseFormat(text, format, timezone);
     }else if(timezone && !format){
+      console.error({text, timezone, format});
       throw Error("not implemented!");
     }else if (!timezone && format){
       console.error({text, timezone, format});
@@ -272,21 +273,19 @@ export default class Mdate {
       return new Mdate(date.getTime());
     }
   }
-  static parseFormat(text:string, format:string):Mdate{
-    const date = new Date(0);
+  static parseFormat(text:string, format:string, timezone:number|TimeZone):Mdate{
     function findNumber(text:string, format:string, partstr:string){
       const index = format.indexOf(partstr);
       return index < 0 ? 0 : Number(text.slice(index, index+partstr.length));
     }
-    date.setFullYear(findNumber(text, format, "YYYY"));
-    date.setMonth(findNumber(text, format, "MM") - 1);
-    date.setDate(findNumber(text, format, "DD"));
-    date.setHours(findNumber(text, format, "HH"));
-    date.setMinutes(findNumber(text, format, "mm"));
-    date.setSeconds(findNumber(text, format, "ss"));
-    date.setMilliseconds(findNumber(text, format, "SSS"));
-    const time = date.getTime();
-    const mdate = new Mdate(time);
+    const mdate = new Mdate(0, timezone)
+                  .setFullYear(findNumber(text, format, "YYYY"))
+                  .setMonth(findNumber(text, format, "MM") - 1)
+                  .setDate(findNumber(text, format, "DD"))
+                  .setHour(findNumber(text, format, "HH"))
+                  .setMinute(findNumber(text, format, "mm"))
+                  .setSecond(findNumber(text, format, "ss"))
+                  .setMilliSecond(findNumber(text, format, "SSS"));
     return mdate;
   }
 
@@ -312,30 +311,23 @@ export default class Mdate {
   // getDateString(timezone:string):YYYYMMDD{
   //     return this.format("YYYY-MM-DD",timezone) as YYYYMMDD;
   // }
-  // getResetTime(timezone:string): Mdate{
-  //     const m = moment(this.time).tz(timezone)
-  //         .set("hour",0).set("minute",0).set("second",0).set("millisecond",0);
-  //     return new Mdate(m.valueOf());
-  // }
-  // isToday(timezone:string):boolean{
-  //     const start = Mdate.now().getResetTime(timezone).time;
-  //     const end = Mdate.now().getResetTime(timezone).add(1,"day").time;
-  //     return (start <= this.time && this.time < end);
-  // }
-  // getMediumDOW(timezone:string):string{
-  //     return DAY_OF_WEEK.en.medium[this.toMoment(timezone).day()];
-  // }
+  isToday(timezone?:TimeZone):boolean{
+    const mdate = this.clone();
+    if(timezone) mdate.setTz(timezone);
+    if(mdate.tz == null) throw new Error("set timezone.");
+    return (Mdate.now().setTz(mdate.tz).resetTime().unix === mdate.resetTime().unix);
+  }
   static getDiff(a:Mdate, b:Mdate, unit:Unit): number {
-      let diff = b.time - a.time;
-      if(unit === "millisecond") return diff;
-      diff /= 1000;
-      if(unit === "second") return diff;
-      diff /= 60;
-      if(unit === "minute") return diff;
-      diff /= 60;
-      if(unit === "hour") return diff;
-      diff /= 24;
-      if(unit === "date") return diff;
-      throw Error("not implemented");
+    let diff = b.time - a.time;
+    if(unit === "millisecond") return diff;
+    diff /= 1000;
+    if(unit === "second") return diff;
+    diff /= 60;
+    if(unit === "minute") return diff;
+    diff /= 60;
+    if(unit === "hour") return diff;
+    diff /= 24;
+    if(unit === "date") return diff;
+    throw Error("not implemented");
   }
 }

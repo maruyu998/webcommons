@@ -58,10 +58,13 @@ export function useStateSession<T>(
   const [ isInitialized, setIsInitialized ] = useState<boolean>(false);
   const [ value, setter ] = useState<T>(defaultValue);
   useEffect(()=>{
-    getSessionData(key).then(value=>{
-      if(value == undefined) throw new Error("value is undefined");
+    getSessionData(key)
+    .then(value=>{
+      if(value === undefined) throw new Error("value is undefined");
+      if(value === null) throw new Error("value is null");
       return decoder ? decoder(value) : value;
-    }).catch(error=>{
+    })
+    .catch(error=>{
       console.error(error);
       return defaultValue;
     })

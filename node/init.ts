@@ -10,7 +10,8 @@ const MongoDBStore = connectMongoSession(session);
 declare module "express-session" {
   /* eslint-disable-next-line @typescript-eslint/naming-convention*/
   interface SessionData {
-    maruyuOAuth: maruyuOAuthClient.SessionType
+    maruyuOAuth: maruyuOAuthClient.SessionType,
+    clientData: Record<string, any>
   }
 };
 

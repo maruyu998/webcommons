@@ -9,7 +9,7 @@ async function processFetch(
 ):Promise<DecomposedPacket>{
   return await fetchPromise
     .then(res=>{
-      if(windowForRedirect == undefined) return res;
+      if(windowForRedirect === undefined) return res;
       if(!res.redirected) return res;
       windowForRedirect.location.href = res.url;
       throw new Error("Redirect");
@@ -31,7 +31,7 @@ type OptionType = {
 function createHeader(option:OptionType){
   const { accessToken, cors } = option;
   const mode = cors || "same-origin";
-  const credential = cors == "cors" ? "include" : "same-origin";
+  const credential = cors === "cors" ? "include" : "same-origin";
   return {
     "Accept": "application/json",
     "Content-Type": "application/json",
