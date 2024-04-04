@@ -53,6 +53,51 @@ export function getPacketWithOwnFetch(
   }) as Promise<Response>);
 }
 
+export function postPacketWithOwnFetch(
+  /* eslint-disable-next-line */
+  fetch, 
+  url: string, 
+  object: object, 
+  option: OptionType={}
+):Promise<DecomposedPacket>{
+  /* eslint-disable-next-line */
+  return processFetch(fetch(url, {
+    method: "POST",
+    headers: createHeader(option),
+    body: JSON.stringify(object)
+  }) as Promise<Response>);
+}
+
+export function putPacketWithOwnFetch(
+  /* eslint-disable-next-line */
+  fetch, 
+  url: string, 
+  object: object, 
+  option: OptionType={}
+):Promise<DecomposedPacket>{
+  /* eslint-disable-next-line */
+  return processFetch(fetch(url, {
+    method: "PUT",
+    headers: createHeader(option),
+    body: JSON.stringify(object)
+  }) as Promise<Response>);
+}
+
+export function deletePacketWithOwnFetch(
+  /* eslint-disable-next-line */
+  fetch, 
+  url: string, 
+  object: object, 
+  option: OptionType={}
+):Promise<DecomposedPacket>{
+  /* eslint-disable-next-line */
+  return processFetch(fetch(url, {
+    method: "DELETE",
+    headers: createHeader(option),
+    body: JSON.stringify(object)
+  }) as Promise<Response>);
+}
+
 export function getPacket(
   url: string, 
   option: OptionType={},
