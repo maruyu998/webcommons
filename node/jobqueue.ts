@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 import { generateRandom } from "../commons/utils/random";
 
 const States = ["waiting","running","done"] as const;
@@ -16,13 +17,13 @@ type JobType = {
   endAt?: Date
 };
 
-const JobModel = mongoose.model<JobType>("Job", 
+const JobModel = mongoose.model<JobType>("mwc_job", 
   new mongoose.Schema<JobType>({
     jobId: {
       type: String,
       required: true,
       unique: true,
-      default: ()=>generateRandom(20)
+      default: ()=>uuidv4()
     },
     key: {
       type: String,

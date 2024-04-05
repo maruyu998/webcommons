@@ -3,14 +3,30 @@ import { sendError } from "./express";
 import { InvalidParamError, AuthenticationError, UnexpectedError } from "./errors";
 import { getUserInfo } from "./oauth";
 import { isObject } from "../commons/utils/types";
+import { getUserIdByApiKey } from "./apiauth";
 
 export async function requireSignin(
   request:express.Request, 
   response:express.Response, 
   next:express.NextFunction
 ){
+  const authHeader = request.headers['authorization'] || null;
+  if(authHeader){
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    if(!token) {
+      return sendError(response, new AuthenticationError("Authentication Bearer is detected but token is missing"));
+    }
+    const userId = await getUserIdByApiKey(token);
+    if(userId == null){
+      return sendError(response, new AuthenticationError("Authentication Bearer token is invalid"));
+    }
+    response.locals.currentUserInfo = { userId };
+    next();
+    return;
+  }
   await getUserInfo(request)
   .then(currentUserInfo=>{
+    if(currentUserInfo == null) throw new Error("current user info is null");
     response.locals.currentUserInfo = currentUserInfo;
     next();
   })
