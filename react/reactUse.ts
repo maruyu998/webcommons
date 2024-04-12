@@ -81,7 +81,7 @@ export function useStateSession<T>(
   return [ value, setter, isInitialized ];
 }
 
-type URLSearchParamEncoder<T> = {(param:T):string};
+type URLSearchParamEncoder<T> = {(param:T):string|undefined};
 type URLSearchParamDecoder<T> = {(param:string):T};
 export function useStateUrlSearchParamType<T>(
   name:string,
@@ -90,14 +90,21 @@ export function useStateUrlSearchParamType<T>(
   decoder:URLSearchParamDecoder<T>
 ):[T, Dispatch<SetStateAction<T>>]{
   const [ searchParams, setSearchParams ] = useSearchParams();
-  const value = (searchParams.get(name)!=null) ? decoder(searchParams.get(name)!) : defaultValue;
-  // searchParams.set(name, encoder(defaultValue));
-  const [ state, setState ] = useState<T>(value);
+  const [ state, setState ] = useState<T>((()=>{
+    const value = searchParams.get(name);
+    return value != null ? decoder(value) : defaultValue;
+  })());
   useEffect(()=>{
-    setSearchParams({
-      ...Object.fromEntries(searchParams.entries()), 
-      [name]:encoder(state)
+    const value = encoder(state);
+    if(value == undefined){
+      searchParams.delete(name);
+      setSearchParams({ ...Object.fromEntries(searchParams.entries()) });
+    }else{
+      setSearchParams({
+        ...Object.fromEntries(searchParams.entries()), 
+        [name]: value
+      });
     }
-  );}, [state]);
+  }, [state]);
   return [state, setState];
 }
