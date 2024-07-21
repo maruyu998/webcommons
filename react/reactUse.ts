@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Dispatch, SetStateAction, MutableRefObject } from "react";
 import { useCookies } from "react-cookie";
 import { useSearchParams } from "react-router-dom";
@@ -7,8 +7,10 @@ import { saveSessionData, getSessionData } from "./sessionData";
 export function useCookie(name:string, defaultValue:string|undefined=undefined):[string, (v:string)=>void]{
   const [cookie, setCookie] = useCookies([name]);
   const newCookie = String(cookie[name]);
-  const newSetCookie = (v:string) => setCookie(name, v);
-  if(newCookie===undefined && defaultValue!==undefined) newSetCookie(defaultValue);
+  const newSetCookie = useMemo(()=>function(v:string){setCookie(name, v);}, [setCookie, name]);
+  useEffect(()=>{
+    if(newCookie===undefined && defaultValue!==undefined) newSetCookie(defaultValue);
+  }, [newCookie, defaultValue, newSetCookie]);
   return [newCookie, newSetCookie];
 }
 
@@ -16,7 +18,7 @@ export function useCookieRef(name:string, defaultValue:string|undefined=undefine
   const [cookie, setCookie] = useCookies([name]);
   const newCookie = String(cookie[name]);
   const ref = useRef<string>(newCookie);
-  const newSetCookie = (v:string) => {setCookie(name, v); ref.current = v;};
+  const newSetCookie = useMemo(()=>function(v:string){setCookie(name, v); ref.current = v;}, [name, ref, setCookie]);
   if(newCookie===undefined && defaultValue!==undefined) newSetCookie(defaultValue);
   return [newCookie, newSetCookie, ref];
 }
@@ -42,8 +44,10 @@ export function useTypeStateCookie<T>(
 export function useStateRef<T>(defaultValue:T):[T, (v:T)=>void, MutableRefObject<T>]{
   const [value, setter] = useState<T>(defaultValue);
   const ref = useRef<T>(value);
-  const newSetter = (v:T) => {setter(v); ref.current = v;};
-  ref.current = value;
+  const newSetter = useMemo(()=>function(v:T){setter(v); ref.current = v;}, [ref, setter]);
+  useEffect(()=>{
+    ref.current = value;
+  }, []);
   return [value, newSetter, ref];
 }
 
