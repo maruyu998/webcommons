@@ -14,6 +14,10 @@ export function printColor({red,green,blue}:{red:number, green:number, blue:numb
   return `#${_red}${_green}${_blue}`;
 }
 
+export function isBrightColor({red,green,blue}:{red:number,green:number,blue:number}){
+  return (red * 0.299 + green * 0.587 + blue * 0.114) <= 186;
+}
+
 export function rgbToHsv({red,green,blue}:{red:number, green:number, blue:number}) {
   const r = red / 255;
   const g = green / 255;

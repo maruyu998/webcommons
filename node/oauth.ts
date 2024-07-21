@@ -10,7 +10,7 @@ import { getPacketWithOwnFetch } from "../commons/utils/fetch";
 import { AuthenticationError, InvalidParamError, PermissionError } from "./errors";
 import { PacketSourceDataType } from "../commons/types/packet";
 
-type AuthSessionType = { codeVerifier?: string, state?: string, returnTo?: string };
+type AuthSessionType = { codeVerifier: string, returnTo: string, expiredAt:Date };
 type TokenSessionType = { accessToken:string, tokenType:string, refreshToken:string, scope:string, expiresAt:Date };
 export type UserInfoType = {
   userId: string, 
@@ -18,7 +18,11 @@ export type UserInfoType = {
   data: object,
   expiresAt: Date
 };
-export type SessionType = { auth?: AuthSessionType, token?: TokenSessionType, userInfo?: UserInfoType };
+export type SessionType = { 
+  auths?: { [state:string]: AuthSessionType }, 
+  token?: TokenSessionType, 
+  userInfo?: UserInfoType
+};
 
 // const CLIENT_NAME = mconfig.get("clientName");
 const CLIENT_ID = mconfig.get("clientId");
@@ -32,6 +36,7 @@ const OAUTH_AUTHORIZE_PATH = mconfig.get("oauthAuthorizePath");
 const OAUTH_USER_INFO_PATH = mconfig.get("oauthUserInfoPath");
 
 const USER_INFO_KEEP_DURATION = mconfig.getNumber("userInfoKeepDuration");
+const AUTH_SESSION_KEEP_DURATION = mconfig.getNumber("authSessionKeepDuration");
 
 const SCOPES = ["user"];
 
@@ -46,30 +51,57 @@ const oauth2 = new ClientOAuth2({
 
 //////////////////////////////////// [ F U N C T I O N S ] ////////////////////////////////////
 // sessions
-function getSession(request:express.Request){
-  const { auth, token, userInfo } = request.session.maruyuOAuth || {};
-  return { auth, token, userInfo };
+function getSession(request:express.Request):SessionType{
+  const { auths, token, userInfo } = request.session.maruyuOAuth || {};
+  return { auths, token, userInfo };
 }
-async function setSession(request:express.Request, { auth, token, userInfo }:{
-  auth?:AuthSessionType, token?:TokenSessionType, userInfo?:UserInfoType
-}){
+async function setAuthSession(request:express.Request, state:string, auth:AuthSessionType){
   if(request.session.maruyuOAuth === undefined) {
     request.session.maruyuOAuth = {};
-    await saveSession(request);
   }
-  if(auth) request.session.maruyuOAuth.auth = auth;
-  if(token) request.session.maruyuOAuth.token = token;
-  if(userInfo) request.session.maruyuOAuth.userInfo = userInfo;
+  if(request.session.maruyuOAuth.auths === undefined) {
+    request.session.maruyuOAuth.auths = {};
+  }
+  request.session.maruyuOAuth.auths[state] = auth;
   await saveSession(request);
 }
-async function clearSession(request:express.Request, keys:("auth"|"token"|"userInfo")[]){
+async function setTokenSession(request:express.Request, token:TokenSessionType){
   if(request.session.maruyuOAuth === undefined) {
     request.session.maruyuOAuth = {};
-    await saveSession(request);
   }
-  if(keys.includes("auth")) request.session.maruyuOAuth.auth = undefined;
-  if(keys.includes("token")) request.session.maruyuOAuth.token = undefined;
-  if(keys.includes("userInfo")) request.session.maruyuOAuth.userInfo = undefined;
+  request.session.maruyuOAuth.token = token;
+  await saveSession(request);
+}
+async function setUserInfoSession(request:express.Request, userInfo:UserInfoType){
+  if(request.session.maruyuOAuth === undefined) {
+    request.session.maruyuOAuth = {};
+  }
+  request.session.maruyuOAuth.userInfo = userInfo;
+  await saveSession(request);
+}
+async function clearAuthSession(request:express.Request, state:string){
+  if(request.session.maruyuOAuth === undefined) {
+    request.session.maruyuOAuth = {};
+  }
+  if(request.session.maruyuOAuth.auths){
+    delete request.session.maruyuOAuth.auths[state];
+  }
+  await saveSession(request);
+}
+async function clearTokenSession(request:express.Request){
+  if(request.session.maruyuOAuth === undefined) {
+    request.session.maruyuOAuth = {};
+  }else{
+    request.session.maruyuOAuth.token = undefined;
+  }
+  await saveSession(request);
+}
+async function clearUserInfoSession(request:express.Request){
+  if(request.session.maruyuOAuth === undefined) {
+    request.session.maruyuOAuth = {};
+  }else{
+    request.session.maruyuOAuth.userInfo = undefined;
+  }
   await saveSession(request);
 }
 
@@ -95,7 +127,7 @@ async function refreshAccessToken(request:express.Request):Promise<boolean>{
       expires_at: expiresAt 
     } = token.data;
     await regenerateSession(request);
-    await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
+    await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
     return true;
   })
   .catch(error=>{
@@ -129,7 +161,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
   const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:string, user_name:string, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
-  await setSession(request, { userInfo:{ userId, userName, data, expiresAt } });
+  await setUserInfoSession(request, { userId, userName, data, expiresAt });
   return { userId, userName, data, expiresAt };
 }
 
@@ -138,7 +170,8 @@ export async function redirectToSignin(request:express.Request, response:express
   const returnTo = request.url;
   const state = randomUUID();
   const { code_verifier: codeVerifier, code_challenge: codeChallenge } = pkceChallenge();
-  await setSession(request, { auth:{ codeVerifier, state, returnTo } });
+  const expiredAt = new Date(Date.now() + AUTH_SESSION_KEEP_DURATION);
+  await setAuthSession(request, state, { codeVerifier, returnTo, expiredAt });
   const codeChallengeMethod = "S256";
   const clientSecret = CLIENT_SECRET;
   // {authorization_uri} ? {client_id=} & {redirect_uri=(service_domain + /api/oauth/callback, etc)}
@@ -150,17 +183,21 @@ export async function redirectToSignin(request:express.Request, response:express
 }
 
 export async function processCallbackThenRedirect(request:express.Request, response:express.Response):Promise<void>{
-  if(getSession(request).auth === undefined) return sendError(response, new AuthenticationError("Session is expired"));
-  const { auth } = getSession(request);
-  if(auth == null) return sendError(response, new AuthenticationError("auth is empty."));
-  const { state, codeVerifier, returnTo } = auth;
-  await clearSession(request, ["auth"]);
-  if(!state) return sendError(response, new AuthenticationError("state is empty."));
-  if(!codeVerifier) return sendError(response, new AuthenticationError("codeVerifier is empty."));
-  
+  // if(getSession(request).auths === undefined) return sendError(response, new AuthenticationError("Session is expired"));
+  const { auths } = getSession(request);
+  if(auths == undefined) return sendError(response, new AuthenticationError("auth is empty."));
   if(request.query.state === undefined) return sendError(response, new InvalidParamError("state"));
   const returnedState = String(request.query.state);
-  if(state !== returnedState) return sendError(response, new AuthenticationError("state is not match."));
+
+  const auth = auths[returnedState];
+  if(auth == undefined) return sendError(response, new AuthenticationError("state is not match."));
+  const { codeVerifier, returnTo, expiredAt } = auth;
+  if(expiredAt.getTime() < Date.now()) {
+    clearAuthSession(request, returnedState);
+    return sendError(response, new AuthenticationError("Auth session is expired."));
+  }
+  if(!codeVerifier) return sendError(response, new AuthenticationError("codeVerifier is empty."));
+  await clearAuthSession(request, returnedState);
 
   // post to access_token_uri with body { grant_type=authorization_code, code, redirect_uri, code_verifier }
   // response: { access_token, token_type, expires_in(second), refresh_token, scope }
@@ -175,15 +212,28 @@ export async function processCallbackThenRedirect(request:express.Request, respo
       expires_at: expiresAt
     } = token.data;
     await regenerateSession(request);
-    await setSession(request, { token:{ accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) } });
+    for(let [state, auth] of Object.entries(auths)){
+      if(state == returnedState) continue;
+      await setAuthSession(request, state, auth);
+    }
+    await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
     return response.redirect(returnTo || "/");
   })
   .catch(()=>null);
 }
 
 export async function signoutThenRedirectTop(request:express.Request, response:express.Response){
-  await clearSession(request, ["auth", "token", "userInfo"]);
+  const { auths } = await getSession(request);
+  // await clearAuthSession(request);
+  await clearTokenSession(request);
+  await clearUserInfoSession(request);
   await regenerateSession(request);
+  if(auths != undefined){
+    for(let [state, auth] of Object.entries(auths)){
+      await setAuthSession(request, state, auth);
+      console.log(state)
+    }
+  }
   response.redirect("/");
 }
 
