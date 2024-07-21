@@ -1,6 +1,6 @@
-import Mdate from "./mdate";
+import { Locale, Mdate, MdateTz } from "./mdate";
 import { PacketSourceDataType, PacketConvertedData, Packet, DecomposedPacket } from "../types/packet";
-import { isBoolean, isNumber, isString, isDate, isArray, isObject, isMdate } from "./types";
+import { isBoolean, isNumber, isString, isDate, isArray, isObject, isMdate, isMdateTz } from "./types";
 import { objectMapAssign } from "./object";
 
 export function convertPacket({
@@ -22,6 +22,7 @@ export function convertPacket({
     if(isNumber(data)) return { type:"number", data };
     if(isBoolean(data)) return { type:"boolean", data };
     if(isDate(data)) return { type:"date", data: data.getTime() };
+    if(isMdateTz(data)) return { type:"mdateTz", data: data.toJson() };
     if(isMdate(data)) return { type:"mdate", data: data.toJson() };
     if(isArray(data)) return { type:"array", data: data.map(o=>convert(o)) };
     if(isObject(data)) return { type:"object",
@@ -50,7 +51,8 @@ export function deconvertPacket(packet:Packet): DecomposedPacket{
     if(cdata.type === "number") return Number(cdata.data);
     if(cdata.type === "boolean") return Boolean(cdata.data);
     if(cdata.type === "date") return new Date(cdata.data as number);
-    if(cdata.type === "mdate") return Mdate.fromJson(cdata.data as {time:number, tz:number});
+    if(cdata.type === "mdateTz") return MdateTz.fromJson(cdata.data as {cls:string, time:number, tz:number});
+    if(cdata.type === "mdate") return Mdate.fromJson(cdata.data as {cls:string, time:number});
     if(cdata.type === "array") return (cdata.data as PacketConvertedData[]).map(o=>deconvert(o));
     if(cdata.type === "object") return Object.assign({}, 
       ...Object.entries(cdata.data as {[key:string]:PacketConvertedData}).map(([k,v])=>({[k]:deconvert(v)}))

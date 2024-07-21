@@ -82,53 +82,103 @@ function _getLastDayOfMonth(){
 
 }
 
-export default class Mdate {
-  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+export class Mdate {
   private readonly time: number = 0;
-  private tz: number|null = null;
+  constructor(time?:number){
+    this.time = (time!==undefined) ? time : Date.now();
+  }
+  get unix() { return this.time; }
+  toJson(){
+    return { cls:"Mdate", time: this.time };
+  }
+  static fromJson({
+    cls,
+    time
+  }:{
+    cls: string,
+    time: number
+  }){
+    if(!["Mdate", "MdateTz"].includes(cls)) throw new Error(`cls is not proper. cls=${cls}`);
+    return new Mdate(time);
+  }
+  toDate(){ return new Date(this.time); }
+  toString(){ return this.toDate().toString(); }
+  toIsoString(){ return this.toDate().toISOString(); }
+  static now(){ return new Mdate(); }
+  clone(){ return new Mdate(this.time); }
+  toTz(tz:number|TimeZone){ return new MdateTz(this.unix, tz); }
+  addMs = (ms:number) => new Mdate(this.time + ms);
+
+  isBefore = (mdate:Mdate) => this.unix < mdate.unix;
+  isSame = (mdate:Mdate) => this.unix === mdate.unix;
+  isAfter = (mdate:Mdate) => this.unix > mdate.unix;
+  
+  static getDiff(a:Mdate, b:Mdate, unit:Unit): number {
+    let diff = b.unix - a.unix;
+    if(unit === "millisecond") return diff;
+    diff /= 1000;
+    if(unit === "second") return diff;
+    diff /= 60;
+    if(unit === "minute") return diff;
+    diff /= 60;
+    if(unit === "hour") return diff;
+    diff /= 24;
+    if(unit === "date") return diff;
+    throw Error("not implemented");
+  }
+}
+
+export class MdateTz extends Mdate {
+  private tz: number = 0;
   private locale: Locale|null = null;
   private firstDayOfWeek: number|null = null;
 
-  constructor(time?:number, tz?:number|TimeZone|null, locale?:Locale|null, firstDayOfWeek?:number|null){
-    this.time = (time!==undefined) ? time : Date.now();
-    if(tz !== undefined && tz != null) this.setTz(tz);
+  constructor(time:number|undefined, tz:number|TimeZone, locale?:Locale|null, firstDayOfWeek?:number|null){
+    super(time);
+    this.setTz(tz);
     if(locale !== undefined && locale != null) this.setLocale(locale);
     if(firstDayOfWeek !== undefined) this.setFirstDayOfWeek(firstDayOfWeek);
   }
-  toJson = () => ({ time: this.time, tz: this.tz, firstDayOfWeek: this.firstDayOfWeek });
-  static fromJson = ({time, tz}:{time:number, tz:number|null}) => new Mdate(time, tz);
+  toJson(){
+    return { cls:"MdateTz", time:this.unix, tz:this.tz, locale:this.locale, firstDayOfWeek:this.firstDayOfWeek };
+  };
+  static fromJson({
+    cls,
+    time, 
+    tz,
+    locale,
+    firstDayOfWeek
+  }:{
+    cls: string,
+    time:number, 
+    tz:number,
+    locale?:Locale|null,
+    firstDayOfWeek?:number|null
+  }){
+    if(cls != "MdateTz") throw new Error(`cls is not proper. cls=${cls}`);
+    return new MdateTz(time, tz, locale, firstDayOfWeek);
+  }
   private get fakeDate(){
     const date = this.toDate();
     if(this.tz == null) throw new Error("set timezone.");
     date.setHours(date.getHours()+this.tz);
     return date;
   }
-  toDate = () => new Date(this.time);
-  toString = () => this.toDate().toString();
-  toIsoString = () => this.toDate().toISOString();
-  static now = () => new Mdate();
-  clone = () => new Mdate(this.time, this.tz, this.locale, this.firstDayOfWeek);
-  get unix() { return this.time; }
+  clone(){ return new MdateTz(this.unix, this.tz, this.locale, this.firstDayOfWeek) };
   
-  get(target:Unit, timezone?:TimeZone){
-    const mdate = this.clone();
-    if(timezone) mdate.setTz(timezone);
-
-    if(mdate.tz == null) throw new Error("set timezone.");
-    if(target === "year") return mdate.getFullYear();
-    if(target === "month") return mdate.getMonth();
-    if(target === "date") return mdate.getDate();
-    if(target === "hour") return mdate.getHours();
-    if(target === "minute") return mdate.getMinutes();
-    if(target === "second") return mdate.getSeconds();
-    if(target === "millisecond") return mdate.getMilliSeconds();
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  get(target:Unit){
+    if(target === "year") return this.getFullYear();
+    if(target === "month") return this.getMonth();
+    if(target === "date") return this.getDate();
+    if(target === "hour") return this.getHours();
+    if(target === "minute") return this.getMinutes();
+    if(target === "second") return this.getSeconds();
+    if(target === "millisecond") return this.getMilliSeconds();
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
-  addMs = (ms:number) => new Mdate(this.time + ms, this.tz, this.locale);
+  addMs = (ms:number) => new MdateTz(this.unix + ms, this.tz, this.locale, this.firstDayOfWeek);
 
-  add(value:number, target:Unit){
-    if(this.tz == null) throw new Error("set timezone.");
+  forkAdd(value:number, target:Unit):MdateTz{
     if(target === "year") return this.forkAddFullYear(value);
     if(target === "month") return this.forkAddMonth(value);
     if(target === "date") return this.forkAddDate(value);
@@ -136,11 +186,9 @@ export default class Mdate {
     if(target === "minute") return this.forkAddMinute(value);
     if(target === "second") return this.forkAddSecond(value);
     if(target === "millisecond") return this.forkAddMilliSecond(value);
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
   forkSet(value:number, target:Unit|"dayOfWeek"){
-    if(this.tz == null) throw new Error("set timezone.");
     if(target === "year") return this.forkSetFullYear(value);
     if(target === "month") return this.forkSetMonth(value);
     if(target === "date") return this.forkSetDate(value);
@@ -150,21 +198,20 @@ export default class Mdate {
     if(target === "millisecond") return this.forkSetMilliSecond(value);
 
     if(target === "dayOfWeek") return this.forkSetDayOfWeek(value);
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
-  setTz(tz:number|TimeZone):Mdate{ 
+  setTz(tz:number|TimeZone):MdateTz{ 
     if(isNumber(tz)) this.tz = tz as number;
     else if(tz in TIME_ZONES) this.tz = TIME_ZONES[tz];
     else throw new Error(`timezone is not proper. :${tz}`);
     return this;
   }
-  setLocale(locale:Locale):Mdate{
+  setLocale(locale:Locale):MdateTz{
     if(locale in LOCALE_FORMATS) this.locale = locale;
     else throw new Error(`locale is not proper. :${locale}`);
     return this;
   }
-  setFirstDayOfWeek(firstDayOfWeek:number|null):Mdate{
+  setFirstDayOfWeek(firstDayOfWeek:number|null):MdateTz{
     if(firstDayOfWeek == null) this.firstDayOfWeek = null;
     else if(0 <= firstDayOfWeek && firstDayOfWeek <= 6) this.firstDayOfWeek = firstDayOfWeek;
     else throw new Error(`firstDayOfWeek is not proper. :${firstDayOfWeek}`);
@@ -226,7 +273,7 @@ export default class Mdate {
   }
 
 
-  private forkSetFakeDate = (time:number) => new Mdate(this.time - (this.fakeDate.getTime() - time), this.tz, this.locale, this.firstDayOfWeek);
+  private forkSetFakeDate = (time:number) => new MdateTz(this.unix - (this.fakeDate.getTime() - time), this.tz, this.locale, this.firstDayOfWeek);
   
   // FORK_SET [ year / month / date / hour / minute / second / millisecond ]
   private forkSetFullYear =  (year:number) => this.forkSetFakeDate(this.fakeDate.setUTCFullYear(year));
@@ -258,7 +305,6 @@ export default class Mdate {
   private forkAddMilliSecond = (ms:number) => this.forkSetMilliSecond(this.getMilliSeconds() + ms);
 
   private getTzString(colon:boolean){
-    if(this.tz == null) throw new Error("set timezone.");
     let tzStr = "";
     tzStr += (this.tz >= 0) ? "+" : "-";
     const tzTmp = Math.abs(this.tz);
@@ -272,10 +318,9 @@ export default class Mdate {
     return _getAmpm(this.locale, upperOrLower, this.getHours() < 12 ? 0 : 1);
   }
 
-  format(format:string, timezone?:TimeZone, locale?:Locale): string{
+  format(format:string, locale?:Locale): string{
     let text = format;
     const mdate = this.clone();
-    if(timezone) mdate.setTz(timezone);
     if(locale) mdate.setLocale(locale);
 
     text = _replace(text, /(?<!Y)YYYY(?!Y)/, ()=>mdate.getFullYearStr());
@@ -310,27 +355,29 @@ export default class Mdate {
     return text;
   }
 
-  static parse(text:string, timezone?:number|TimeZone, format?:string):Mdate{
-    if(timezone && format){
-      // timezone section in text is ignored
-      return this.parseFormat(text, format, timezone);
-    }else if(timezone && !format){
-      console.error({text, timezone, format});
-      throw Error("not implemented!");
-    }else if (!timezone && format){
-      console.error({text, timezone, format});
-      throw Error("not implemented!");
-    }else{
-      const date = new Date(Date.parse(text));
-      return new Mdate(date.getTime());
-    }
-  }
-  static parseFormat(text:string, format:string, timezone:number|TimeZone):Mdate{
+  // static parse(text:string, timezone?:number|TimeZone, format?:string):MdateTz{
+  //   if(timezone && format){
+  //     // timezone section in text is ignored
+  //     return this.parseFormat(text, format, timezone);
+  //   }else if(timezone && !format){
+  //     console.error({text, timezone, format});
+  //     throw Error("not implemented!");
+  //   }else if (!timezone && format){
+  //     console.error({text, timezone, format});
+  //     throw Error("not implemented!");
+  //   }else{
+  //     console.error({text, timezone, format});
+  //     throw Error("not implemented!");
+  //     // const date = new Date(Date.parse(text));
+  //     // return new MdateTz(date.getTime(), 0);
+  //   }
+  // }
+  static parseFormat(text:string, format:string, timezone:number|TimeZone):MdateTz{
     function findNumber(text:string, format:string, partstr:string){
       const index = format.indexOf(partstr);
       return index < 0 ? 0 : Number(text.slice(index, index+partstr.length));
     }
-    const mdate = new Mdate(0, timezone)
+    const mdate = new MdateTz(0, timezone)
                   .forkSetFullYear(findNumber(text, format, "YYYY"))
                   .forkSetMonth(findNumber(text, format, "MM") - 1)
                   .forkSetDate(findNumber(text, format, "DD"))
@@ -342,51 +389,24 @@ export default class Mdate {
   }
 
   getRatio(unit:Extract<Unit, "date"|"hour"|"minute">){
-    if(unit === "date") return (this.time - this.forkSet(0,"hour").forkSet(0,"minute").forkSet(0,"second").forkSet(0,"millisecond").time) / DAY;
-    if(unit === "hour") return (this.time - this.forkSet(0,"minute").forkSet(0,"second").forkSet(0,"millisecond").time) / HOUR;
-    if(unit === "minute") return (this.time - this.forkSet(0,"second").forkSet(0,"millisecond").time) / MINUTE;
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    if(unit === "date") return (this.unix - this.forkSet(0,"hour").forkSet(0,"minute").forkSet(0,"second").forkSet(0,"millisecond").unix) / DAY;
+    if(unit === "hour") return (this.unix - this.forkSet(0,"minute").forkSet(0,"second").forkSet(0,"millisecond").unix) / HOUR;
+    if(unit === "minute") return (this.unix - this.forkSet(0,"second").forkSet(0,"millisecond").unix) / MINUTE;
     throw new Error(`[not reachable] unit error, unit: ${unit}`);
   }
 
-  isBefore = (mdate:Mdate) => this.time < mdate.time;
-  isSame = (mdate:Mdate) => this.time === mdate.time;
-  isAfter = (mdate:Mdate) => this.time > mdate.time;
-
-  resetTime(timezone?:TimeZone){
-    const mdate = this.clone();
-    if(timezone) mdate.setTz(timezone);
-    if(mdate.tz == null) throw new Error("set timezone.");
-    return mdate.forkSet(0,"hour").forkSet(0,"minute").forkSet(0,"second").forkSet(0,"millisecond");
+  resetTime(){
+    return this.forkSet(0,"hour").forkSet(0,"minute").forkSet(0,"second").forkSet(0,"millisecond");
   }
-  resetWeek(timezone?:TimeZone){
-    const mdate = this.clone();
-    if(timezone) mdate.setTz(timezone);
-    if(mdate.tz == null) throw new Error("set timezone.");
-    return mdate.forkSetDayOfWeek(this.firstDayOfWeek||0);
+  resetWeek(){
+    return this.forkSetDayOfWeek(this.firstDayOfWeek||0);
   }
   
   // getDateString(timezone:string):YYYYMMDD{
   //     return this.format("YYYY-MM-DD",timezone) as YYYYMMDD;
   // }
-  isToday(timezone?:TimeZone):boolean{
-    const mdate = this.clone();
-    if(timezone) mdate.setTz(timezone);
-    if(mdate.tz == null) throw new Error("set timezone.");
-    return (Mdate.now().setTz(mdate.tz).resetTime().unix === mdate.resetTime().unix);
-  }
-  static getDiff(a:Mdate, b:Mdate, unit:Unit): number {
-    let diff = b.time - a.time;
-    if(unit === "millisecond") return diff;
-    diff /= 1000;
-    if(unit === "second") return diff;
-    diff /= 60;
-    if(unit === "minute") return diff;
-    diff /= 60;
-    if(unit === "hour") return diff;
-    diff /= 24;
-    if(unit === "date") return diff;
-    throw Error("not implemented");
+  isToday():boolean{
+    return (new MdateTz(undefined, this.tz).resetTime().unix === this.resetTime().unix);
   }
   getLastDayOfMonth(){
     return this.forkAddMonth(1).forkSetDate(-1).get("date");
