@@ -231,7 +231,6 @@ export async function signoutThenRedirectTop(request:express.Request, response:e
   if(auths != undefined){
     for(let [state, auth] of Object.entries(auths)){
       await setAuthSession(request, state, auth);
-      console.log(state)
     }
   }
   response.redirect("/");
