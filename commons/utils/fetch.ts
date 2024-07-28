@@ -40,6 +40,16 @@ function createHeader(option:OptionType){
   };
 }
 
+function createHeaderForm(option:OptionType){
+  const { accessToken, cors } = option;
+  const mode = cors || "same-origin";
+  const credential = cors === "cors" ? "include" : "same-origin";
+  return {
+    "Authorization": accessToken ? `Bearer ${accessToken}` : "", 
+    mode, credential
+  };
+}
+
 export function getPacketWithOwnFetch(
   /* eslint-disable-next-line */
   fetch, 
@@ -120,6 +130,24 @@ export function postPacket(
     method: "POST",
     headers: createHeader(option),
     body: JSON.stringify(object)
+  });
+  return processFetch(fetchPromise, windowForRedirect);
+}
+
+export function postPacketForm(
+  url: string,
+  object: object,
+  option: OptionType={},
+  windowForRedirect?: Window & typeof globalThis
+){
+  const formData = new FormData();
+  for(const [key,value] of Object.entries(object)){
+    formData.append(key, value);
+  }
+  const fetchPromise = fetch(url, {
+    method: "POST",
+    headers: createHeaderForm(option),
+    body: formData
   });
   return processFetch(fetchPromise, windowForRedirect);
 }
