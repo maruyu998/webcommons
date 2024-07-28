@@ -17,6 +17,7 @@ type PushSubscriptionType = {
 let PushSubscriptionModel:mongoose.Model<PushSubscriptionType>|null = null;
 
 export function register(){
+  // `npx web-push generate-vapid-keys`
   const publicVapidKey = mconfig.get("publicVapidKey");
   const privateVapidKey = mconfig.get("privateVapidKey");
   const vapidEmail = mconfig.get("vapidEmail");

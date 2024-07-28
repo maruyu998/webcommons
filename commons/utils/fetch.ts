@@ -14,6 +14,10 @@ async function processFetch(
       windowForRedirect.location.href = res.url;
       throw new Error("Redirect");
     })
+    .then(res=>{
+      if(res.status == 200) return res;
+      throw new Error(`fetch status is not 200, [${res.status}] ${res.statusText} fetching ${res.url}`)
+    })
     .then(res=>res.json())
     .then((packet:Packet)=>deconvertPacket(packet))
     .then(({title, message, data, error})=>{
