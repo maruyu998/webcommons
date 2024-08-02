@@ -73,9 +73,29 @@ export async function registerSubscription(
   
     if(PushSubscriptionModel == null) return response.status(500).json({});
     await PushSubscriptionModel.create({ userId, endpoint, keys: { p256dh, auth } });
-    response.status(201).json({});
+    response.status(200).json({});
   }catch(error){
-    response.status(401).json({});
+    response.status(500).json({});
+  }
+}
+
+export async function unregisterSubscription(
+  request:express.Request, 
+  response:express.Response
+){
+  const { userId } = response.locals.currentUserInfo;
+  if(!userId) return response.status(401).json({});
+  try{
+    const subscription = request.body.subscription;
+    const endpoint = subscription.endpoint;
+    if(typeof endpoint != "string") return response.status(401).json({});
+  
+    if(PushSubscriptionModel == null) return response.status(500).json({});
+    const pushSubscription = await PushSubscriptionModel.findOneAndDelete({ userId, endpoint });
+    if(pushSubscription == null) return response.status(401).json({});
+    response.status(200).json({});
+  }catch(error){
+    response.status(500).json({});
   }
 }
 
