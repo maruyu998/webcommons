@@ -45,5 +45,6 @@ app.use(session({
     maxAge: mconfig.getNumber("sessionKeepDuration")
   }
 }));
+app.set('trust proxy', true);
 
 export default app;

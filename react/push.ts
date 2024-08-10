@@ -35,14 +35,16 @@ export async function registerNotification(){
         userVisibleOnly: true,
         applicationServerKey: convertedVapidKey
       });
-      fetch('/push', {
+      await fetch('/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({subscription}),
       });
     }
+    return true;
   }else{
     console.log('Notification permission denied');
+    return false;
   }
 }
 
@@ -50,17 +52,27 @@ export async function unregisterNotification(){
   const registration = await (navigator as any).serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();
   if(subscription){
-    fetch('/push', {
+    const success = await fetch('/push', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({subscription}),
     }).then(res=>{
-      if(res.status != 200) throw new Error(`${res.status}`)
+      if(res.status != 200 && res.status != 404) {
+        throw new Error(`${res.status}`);
+      }
       return subscription.unsubscribe()
     })
-    .then(successful=>console.log('通知のサブスクリプションを解除しました。'))
-    .catch(error=>console.error('サブスクリプションの解除に失敗しました:', error))
+    .then(successful=>{
+      console.log('通知のサブスクリプションを解除しました。');
+      return true;
+    })
+    .catch(error=>{
+      console.error('サブスクリプションの解除に失敗しました:', error);
+      return false;
+    });
+    return success;
   }else{
     console.log('通知のサブスクリプションは存在しません。');
+    return true;
   }
 }
