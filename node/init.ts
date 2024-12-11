@@ -38,12 +38,13 @@ app.use(session({
     expiresAfterSeconds: undefined,
   }),
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   rolling: true,
   cookie: {
     httpOnly: true,
     maxAge: mconfig.getNumber("sessionKeepDuration")
   }
 }));
+app.set('trust proxy', true);
 
 export default app;
