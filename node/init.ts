@@ -38,7 +38,7 @@ app.use(session({
     expiresAfterSeconds: undefined,
   }),
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   rolling: true,
   cookie: {
     httpOnly: true,
