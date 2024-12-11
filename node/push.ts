@@ -123,7 +123,7 @@ export async function sendPush(
   if(PushSubscriptionModel == null) throw new UnexpectedError("[Server Error] Push is not initialized.");
   try{
     await webpush.sendNotification(subscription, JSON.stringify(object));
-  } catch(error:unknown){
+  } catch(error:any){
     if(error instanceof webpush.WebPushError){
       if(error.body == "push subscription has unsubscribed or expired.\n"){
         const { endpoint } = error;

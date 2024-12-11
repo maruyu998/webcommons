@@ -1,13 +1,13 @@
 export function parseColor(colorText:string){
   if(colorText[0] == "#"){
-      const [red, green, blue] = [1,3,5].map(i=>colorText.slice(i,i+2)).map(c=>parseInt(c,16));
-      return {red, green, blue};
+    const [red, green, blue] = [1,3,5].map(i=>colorText.slice(i,i+2)).map(c=>parseInt(c,16));
+    return {red, green, blue};
   }else{
-      throw Error(`not implemented, colorText[${colorText}]`);
+    throw Error(`not implemented, colorText[${colorText}]`);
   }
 }
 
-export function printColor({red,green,blue}:{red:number, green:number, blue:number}){
+export function printColor({red,green,blue}:{red:number,green:number,blue:number}){
   const _red = Math.floor(red).toString(16);
   const _green = Math.floor(green).toString(16);
   const _blue = Math.floor(blue).toString(16);
@@ -18,7 +18,7 @@ export function isBrightColor({red,green,blue}:{red:number,green:number,blue:num
   return (red * 0.299 + green * 0.587 + blue * 0.114) <= 186;
 }
 
-export function rgbToHsv({red,green,blue}:{red:number, green:number, blue:number}) {
+export function rgbToHsv({red,green,blue}:{red:number,green:number,blue:number}) {
   const r = red / 255;
   const g = green / 255;
   const b = blue / 255;
