@@ -10,6 +10,10 @@ export async function regenerateSession(request:express.Request){
   await new Promise<void>((resolve)=>request.session.regenerate(()=>{resolve();}));
 }
 
+export async function destroySession(request:express.Request){
+  await new Promise<void>((resolve)=>request.session.destroy(()=>{resolve();}));
+}
+
 export function sendMessage(response:express.Response, title:string, message:string, verbose:boolean=true){
   if(verbose) {
     const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
