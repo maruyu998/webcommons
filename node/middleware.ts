@@ -4,6 +4,7 @@ import { InvalidParamError, AuthenticationError, UnexpectedError } from "./error
 import { getUserInfo } from "./oauth";
 import { isObject } from "../commons/utils/types";
 import { getUserIdByApiKey } from "./apiauth";
+import { z } from "zod";
 
 export async function requireSignin(
   request:express.Request, 
@@ -62,6 +63,24 @@ export function requireBodyParams(...paramNames:string[]){
       /* eslint-disable @typescript-eslint/no-unsafe-assignment */
       response.locals.bodies[paramName] = request.body[paramName];
     }
+    next();
+  };
+}
+
+export function requireBodyZod<T extends z.ZodRawShape>(zodSchema:z.ZodObject<T>){
+  return ( request: express.Request, response: express.Response, next: express.NextFunction ) => {
+    const result = zodSchema.safeParse(request.body);
+    if(!result.success){
+      console.error(result.error);
+      // for (const issue of result.error.errors) {
+      //   console.log('Path:', issue.path);          // ['userName'] など
+      //   console.log('Message:', issue.message);    // "String must contain at least 5 character(s)" など
+      //   console.log('Code:', issue.code);          // 'too_small' や 'invalid_type' など
+      // }
+      const params = result.error.errors.map(e => e.path[0]);
+      return sendError(response, new InvalidParamError(params.join(',')));
+    }
+    response.locals.zodBody = {...(response.locals.zodBody || {}), ...result.data};
     next();
   };
 }

@@ -30,17 +30,25 @@ export function sendError(response:express.Response, error:Error, data?:any):voi
   response.json(convertPacket({title, message, error, data}));
 }
 
-export function getIpAddress(request:express.Request):string{
-  if(request.headers["x-real-ip"]){
-    if(Array.isArray(request.headers["x-real-ip"])) return request.headers["x-real-ip"][0];
-    return request.headers["x-real-ip"];
+export function getIpAddress(request:express.Request):string|null{
+  if(request.app.get('trust proxy') !== false && request.ip){
+    return request.ip;
   }
-  if(request.headers["x-forwarded-for"]){
-    if(Array.isArray(request.headers["x-forwarded-for"])) return request.headers["x-forwarded-for"][0];
-    return request.headers["x-forwarded-for"];
+  const realIp = request.headers["x-real-ip"];
+  if(realIp){
+    if(Array.isArray(realIp)) return realIp[0];
+    if (typeof realIp === "string") return realIp;
   }
-  if(request.socket?.remoteAddress){
-    return request.socket.remoteAddress;
+  const forwardedFor = request.headers["x-forwarded-for"];
+  if(forwardedFor){
+    if(Array.isArray(forwardedFor)) return forwardedFor[0];
+    if(typeof forwardedFor === "string" && forwardedFor.length > 0){
+      return forwardedFor.split(",")[0].trim(); // Original Client
+    }
   }
-  return "0.0.0.0";
+  // request.socket.remoteAddress is proxy address
+  // if(request.socket?.remoteAddress){
+  //   return request.socket.remoteAddress;
+  // }
+  return null;
 }
