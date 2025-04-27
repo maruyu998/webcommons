@@ -100,15 +100,12 @@ export function useStateUrlSearchParamType<T>(
   })());
   useEffect(()=>{
     const value = encoder(state);
-    if(value == undefined){
-      searchParams.delete(name);
-      setSearchParams({ ...Object.fromEntries(searchParams.entries()) });
-    }else{
-      setSearchParams({
-        ...Object.fromEntries(searchParams.entries()), 
-        [name]: value
-      });
-    }
+    setSearchParams(prev=>{
+      const newParams = new URLSearchParams(prev);
+      if(value == undefined) newParams.delete(name);
+      else newParams.set(name, value);
+      return newParams;
+    })
   }, [state]);
   return [state, setState];
 }

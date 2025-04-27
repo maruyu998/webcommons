@@ -2,12 +2,9 @@ import express from "express";
 import { sendError } from "./express";
 import { InvalidParamError, AuthenticationError, UnexpectedError, InternalServerError } from "./errors";
 import { getUserInfo } from "./oauth";
-import { isArray, isNumber, isObject, isString } from "../commons/utils/types";
+import { isObject } from "../commons/utils/types";
 import { getInfoFromApiKey } from "./apiauth";
-import { isYYYYMMDD } from "../commons/utils/mdate";
-
-const paramTypeList = ["str", "int", "number", "unix", "yyyy-mm-dd"] as const;
-type ParamType = typeof paramTypeList[number] | string[];
+import { z } from "zod";
 
 export async function requireSignin(
   request:express.Request, 
@@ -76,64 +73,20 @@ export function requireBodyParams(...paramNames:string[]){
   };
 }
 
-export function requireQueryParamTypes(
-  paramTypeRecord:{
-    [name:string]: ParamType | {type:ParamType,nullable?:boolean}
-  }
-){
+export function requireBodyZod<T extends z.ZodRawShape>(zodSchema:z.ZodObject<T>){
   return ( request: express.Request, response: express.Response, next: express.NextFunction ) => {
-    if(response.locals.queries === undefined) response.locals.queries = {};
-    if(typeof response.locals.queries != "object") return sendError(response, new UnexpectedError("internal error. queries is not object."));
-    if(Array.isArray(response.locals.queries)) return sendError(response, new UnexpectedError("internal error. queries must not be array."));
-    if(!isObject(response.locals.queries)) return sendError(response, new UnexpectedError("internal error. queries must be object."));
-    for(const paramName of Object.keys(paramTypeRecord)){
-      const tmp = paramTypeRecord[paramName];
-      const requiredType = (typeof tmp == "object" && !Array.isArray(tmp)) ? tmp.type : tmp;
-      const nullable = (typeof tmp == "object" && !Array.isArray(tmp)) ? (tmp.nullable??false) : false;
-
-      const value = request.query[paramName];
-      if(value === undefined) return sendError(response, new InvalidParamError(paramName, "missing"));
-
-      if(Array.isArray(requiredType)){
-        if(!isString(value)) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        if(!requiredType.includes(value)) return sendError(response, new InvalidParamError(paramName, "invalidValue"));
-        response.locals.queries[paramName] = value;
-      }
-      else if(requiredType == "str"){
-        if(!isString(value)) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        response.locals.queries[paramName] = value;
-      }
-      else if(requiredType == "number"){
-        const numberValue = Number(value);
-        if(Number.isNaN(numberValue)) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        response.locals.queries[paramName] = numberValue;
-      }
-      else if(requiredType == "int"){
-        const numberValue = Number(value);
-        if(!Number.isInteger(numberValue)) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        response.locals.queries[paramName] = numberValue;
-      }
-      else if(requiredType == "unix"){
-        if(!paramName.endsWith("Unix")) return sendError(response, new InternalServerError("Query parameter of type 'unix' must have a name that ends with 'Unix'."));
-        const numberValue = Number(value);
-        if(!Number.isInteger(numberValue)) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        if(numberValue < 0) return sendError(response, new InvalidParamError(paramName, "invalidValue"));
-        const dateValue = new Date(numberValue);
-        if(Number.isNaN(dateValue.getTime())) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        const newParamName = paramName.replace(/Unix$/, 'Date');
-        response.locals.queries[paramName] = numberValue;
-        response.locals.queries[newParamName] = dateValue;
-      }
-      else if(requiredType == "yyyy-mm-dd"){
-        if(!(paramName.endsWith("DateString")||paramName.endsWith("dateString"))) return sendError(response, new InternalServerError("Query parameter of type 'yyyy-mm-dd' must have a name that ends with '[D|d]ateString'."));
-        if(!isString(value)) return sendError(response, new InvalidParamError(paramName, "invalidType"));
-        if(!isYYYYMMDD(value)) return sendError(response, new InvalidParamError(paramName, "invalidValue"));
-        response.locals.queries[paramName] = value;
-      }
-      else{
-        return sendError(response, new UnexpectedError("internal error. reached else block."));
-      }
+    const result = zodSchema.safeParse(request.body);
+    if(!result.success){
+      console.error(result.error);
+      // for (const issue of result.error.errors) {
+      //   console.log('Path:', issue.path);          // ['userName'] など
+      //   console.log('Message:', issue.message);    // "String must contain at least 5 character(s)" など
+      //   console.log('Code:', issue.code);          // 'too_small' や 'invalid_type' など
+      // }
+      const params = result.error.errors.map(e => e.path[0]);
+      return sendError(response, new InvalidParamError(params.join(','), "invalidType"));
     }
+    response.locals.zodBody = {...(response.locals.zodBody || {}), ...result.data};
     next();
   };
 }
