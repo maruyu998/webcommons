@@ -6,7 +6,7 @@ import { UnexpectedError } from "./errors";
 import { z } from "zod";
 
 
-type PushSubscriptionType = {
+export type PushSubscriptionType = {
   userId: string,
   endpoint: string,
   keys: {
