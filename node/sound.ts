@@ -1,5 +1,5 @@
 import { execSync, exec } from "child_process";
-import { roundDecimalText } from "maruyu-webcommons/commons/utils/number";
+import { roundDecimalText } from "../commons/utils/number";
 import env from "./env";
 import { z } from "zod";
 
