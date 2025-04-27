@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Dispatch, SetStateAction, MutableRefObject } from "react";
 import { useCookies } from "react-cookie";
 import { useSearchParams } from "react-router-dom";
@@ -85,6 +85,23 @@ export function useStateSession<T>(
   return [ value, setter, isInitialized ];
 }
 
+let pendingUpdates: Record<string, string|undefined> = {};
+let updateTimer: NodeJS.Timeout|null = null;
+const applyBatchUpdates = (setSearchParams: (params: Record<string, string>) => void) => {
+  if (updateTimer) return; // すでにタイマーが動作中ならスキップ
+  updateTimer = setTimeout(() => {
+    const filteredUpdates: Record<string, string> = Object.entries(pendingUpdates)
+      .filter(([_, value]) => value !== undefined) // undefined をフィルタリング
+      .reduce((acc, [key, value]) => {
+        acc[key] = value as string; // value は string のみ
+        return acc;
+      }, {} as Record<string, string>);
+
+    setSearchParams(filteredUpdates);
+    pendingUpdates = {};
+    updateTimer = null;
+  }, 100); // 100ms 待機して一括反映
+};
 type URLSearchParamEncoder<T> = {(param:T):string|undefined};
 type URLSearchParamDecoder<T> = {(param:string):T};
 export function useStateUrlSearchParamType<T>(
@@ -98,17 +115,20 @@ export function useStateUrlSearchParamType<T>(
     const value = searchParams.get(name);
     return value != null ? decoder(value) : defaultValue;
   })());
-  useEffect(()=>{
+
+  const batchedSetSearchParams = useCallback(() => {
+    applyBatchUpdates(setSearchParams);
+  }, [setSearchParams]);
+
+  useEffect(() => {
     const value = encoder(state);
-    if(value == undefined){
-      searchParams.delete(name);
-      setSearchParams({ ...Object.fromEntries(searchParams.entries()) });
-    }else{
-      setSearchParams({
-        ...Object.fromEntries(searchParams.entries()), 
-        [name]: value
-      });
+    if (value === undefined) {
+      delete pendingUpdates[name];
+    } else {
+      pendingUpdates[name] = value;
     }
-  }, [state]);
+    batchedSetSearchParams();
+  }, [state, name, encoder, batchedSetSearchParams]);
+
   return [state, setState];
 }
