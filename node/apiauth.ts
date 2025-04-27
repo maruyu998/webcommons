@@ -6,6 +6,7 @@ type ApiauthType = {
   apiauthId: string,
   apiKey: string,
   userId: string,
+  permissionList: string[],
   expiredAt?: Date
 };
 
@@ -26,6 +27,10 @@ const ApiauthModel = mongoose.model<ApiauthType>("mwc_apiauth",
       required: true,
       default: ()=>generateRandom(50)
     },
+    permissionList: [{
+      type: String,
+      required: true,
+    }],
     expiredAt: {
       type: Date,
       required: false
@@ -35,21 +40,22 @@ const ApiauthModel = mongoose.model<ApiauthType>("mwc_apiauth",
   })
 );
 
-export async function issueApiKey(userId:string){
-  const apiauth = await ApiauthModel.create({userId});
+export async function issueApiKey(userId:string, permissionList:string[]=[]){
+  const apiauth = await ApiauthModel.create({userId, permissionList});
   return apiauth.toJSON();
 }
 
-export async function getUserIdByApiKey(apiKey:string){
+export async function getInfoFromApiKey(apiKey:string):Promise<{userId:string, permissionList:string[], expiredAt?:Date}|null>{
   const apiauth = await ApiauthModel.findOne({apiKey, $or:[{expiredAt:null}, {expiredAt:{$gt:new Date()}}]});
   if(apiauth == null) return null;
-  return apiauth.toJSON().userId;
+  const { userId, permissionList, expiredAt } = apiauth.toJSON();
+  return { userId, permissionList, expiredAt }
 }
 
 export async function getUserApiauths(userId: string){
   const apiauths = await ApiauthModel.find(
     { userId },
-    { _id:0, apiauthId:1, apiKey:1, expiredAt:1 }
+    { _id:0, apiauthId:1, apiKey:1, permissionList:1, expiredAt:1 }
   ).lean();
   return apiauths;
 }

@@ -2,6 +2,7 @@ import express from "express";
 import session from "express-session";
 import connectMongoSession from "connect-mongodb-session";
 import mongoose from "mongoose";
+import helmet from 'helmet';
 import * as maruyuOAuthClient from "./oauth";
 import { z } from "zod";
 import env, { parseDuration } from "./env";
@@ -24,6 +25,26 @@ mongoose.connection.on("error", function(error:Error) {
 });
 
 const app: express.Express = express();
+app.set('trust proxy', true);
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": [
+        "'self'",
+        "https://cdn.tailwindcss.com",
+      ],
+      "style-src": [
+        "'self'",
+        "'unsafe-inline'",
+      ],
+      "img-src": ["'self'", "data:"],
+      "font-src": ["'self'", "https://fonts.gstatic.com"],
+    },
+  },
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
@@ -44,8 +65,9 @@ app.use(session({
   cookie: {
     httpOnly: true,
     maxAge: env.get("SESSION_KEEP_DURATION", z.string().nonempty().transform(parseDuration)),
+    secure: true,
+    sameSite: "lax"
   }
 }));
-app.set('trust proxy', true);
 
 export default app;

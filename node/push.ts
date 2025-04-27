@@ -128,7 +128,7 @@ export async function sendPush(
     if(error instanceof webpush.WebPushError){
       if(error.body == "push subscription has unsubscribed or expired.\n"){
         const { endpoint } = error;
-        await PushSubscriptionModel.findOneAndRemove({ endpoint });
+        await PushSubscriptionModel.findOneAndDelete({ endpoint });
       }
     }
     throw error;

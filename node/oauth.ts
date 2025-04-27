@@ -170,7 +170,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
 export async function redirectToSignin(request:express.Request, response:express.Response):Promise<void>{
   const returnTo = request.url;
   const state = randomUUID();
-  const { code_verifier: codeVerifier, code_challenge: codeChallenge } = pkceChallenge();
+  const { code_verifier: codeVerifier, code_challenge: codeChallenge } = await pkceChallenge();
   const expiredAt = new Date(Date.now() + AUTH_SESSION_KEEP_DURATION);
   await setAuthSession(request, state, { codeVerifier, returnTo, expiredAt });
   const codeChallengeMethod = "S256";
@@ -187,7 +187,7 @@ export async function processCallbackThenRedirect(request:express.Request, respo
   // if(getSession(request).auths === undefined) return sendError(response, new AuthenticationError("Session is expired"));
   const { auths } = getSession(request);
   if(auths == undefined) return sendError(response, new AuthenticationError("auth is empty."));
-  if(request.query.state === undefined) return sendError(response, new InvalidParamError("state"));
+  if(request.query.state === undefined) return sendError(response, new InvalidParamError("state", "missing"));
   const returnedState = String(request.query.state);
 
   const auth = auths[returnedState];
