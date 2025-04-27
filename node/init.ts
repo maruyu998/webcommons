@@ -69,5 +69,6 @@ app.use(session({
     sameSite: "lax"
   }
 }));
+app.set('trust proxy', true);
 
 export default app;
