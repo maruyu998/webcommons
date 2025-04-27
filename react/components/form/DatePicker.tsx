@@ -216,7 +216,6 @@ export default function DatePicker({
   const minuteRef = useRef<HTMLDivElement|null>(null);
 
   useEffect(() => {
-    console.log("scroll?", hourRef.current, minuteRef.current)
     const itemHeight = 32;
     if(hourRef.current){
       hourRef.current.scrollTo({ top:tempHours*itemHeight, behavior:'smooth' });
@@ -233,7 +232,7 @@ export default function DatePicker({
         value={selectedDate ? format(selectedDate, displayFormat, { locale }) : "Select"}
       />
       {isCalendarOpen && (
-        <div ref={popupRef} style={popupStyles} className="absolute z-10 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-fit">
+        <div ref={popupRef} style={popupStyles} className="absolute z-40 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-fit">
           <div className="flex h-60">
             <div className="w-72 h-full">
               <div className="flex justify-between items-center mb-2">
