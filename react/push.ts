@@ -23,19 +23,19 @@ export async function checkIsPushSubscriptionRegistered(){
   return false;
 }
 
-export async function registerNotification(){
+export async function registerNotification(pubkeyPath:string){
   const permission = await (Notification as any).requestPermission();
   if(permission === 'granted'){
     const registration = await (navigator as any).serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
     if(!subscription){
-      const publicVapidKey = await fetch("/push").then(res=>res.text());
+      const publicVapidKey = await fetch(pubkeyPath).then(res=>res.text());
       const convertedVapidKey = urlBase64ToUint8Array(publicVapidKey);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedVapidKey
       });
-      await fetch('/push', {
+      await fetch(pubkeyPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({subscription}),
@@ -48,11 +48,11 @@ export async function registerNotification(){
   }
 }
 
-export async function unregisterNotification(){
+export async function unregisterNotification(pubkeyPath:string){
   const registration = await (navigator as any).serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();
   if(subscription){
-    const success = await fetch('/push', {
+    const success = await fetch(pubkeyPath, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({subscription}),

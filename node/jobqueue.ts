@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
-import { generateRandom } from "../commons/utils/random";
 
 const States = ["waiting","running","done"] as const;
 type StateType = typeof States[number];
@@ -77,9 +76,21 @@ export async function getJob(key:string, query:{[key:string]:any}={}, sort:{[key
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getJobs(key:string, query:{[key:string]:any}={}, sort:{[key:string]:any}={}){
+  const jobs = await JobModel.find({ key,...query }).sort({priority:-1, ...sort}).lean();
+  return jobs;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getWaitingJob(key:string, query:{[key:string]:any}={}, sort:{[key:string]:any}={}){
   const job = (await JobModel.findOne({ key, state:"waiting", ...query }).sort({priority:-1, ...sort}).exec())?.toJSON();
   return job || null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getWaitingJobs(key:string, query:{[key:string]:any}={}, sort:{[key:string]:any}={}){
+  const jobs = await JobModel.find({ key, state:"waiting", ...query }).sort({priority:-1, ...sort}).lean();
+  return jobs;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,6 +106,6 @@ export async function setEndJob(jobId:string){
   await JobModel.findOneAndUpdate({ jobId },{ state:"done", endAt:new Date() }).exec();
 }
 
-export async function deleteCompletedJobs(key:string, query:{[key:string]:any}){
+export async function deleteCompletedJobs(key:string, query:{[key:string]:any}={}){
   await JobModel.deleteMany({ key, state:"done", ...query }).exec();
 }

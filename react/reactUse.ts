@@ -54,6 +54,7 @@ export function useStateRef<T>(defaultValue:T):[T, (v:T)=>void, MutableRefObject
 type SessionEncoder<T> = {(param:T):any};
 type SessionDecoder<T> = {(param:any):T};
 export function useStateSession<T>(
+  endpoint:string,
   key:string, 
   defaultValue:T,
   encoder?:SessionEncoder<T>,
@@ -62,7 +63,7 @@ export function useStateSession<T>(
   const [ isInitialized, setIsInitialized ] = useState<boolean>(false);
   const [ value, setter ] = useState<T>(defaultValue);
   useEffect(()=>{
-    getSessionData(key)
+    getSessionData(endpoint, key)
     .then(value=>{
       if(value === undefined) throw new Error("value is undefined");
       if(value === null) throw new Error("value is null");
@@ -79,7 +80,7 @@ export function useStateSession<T>(
   }, []);
   useEffect(()=>{
     if(!isInitialized) return;
-    saveSessionData(key, encoder ? encoder(value) : value)
+    saveSessionData(endpoint, key, encoder ? encoder(value) : value)
     .catch(error=>console.error(error));
   }, [value]);
   return [ value, setter, isInitialized ];
@@ -129,6 +130,5 @@ export function useStateUrlSearchParamType<T>(
     }
     batchedSetSearchParams();
   }, [state, name, encoder, batchedSetSearchParams]);
-
   return [state, setState];
 }

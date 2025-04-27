@@ -1,11 +1,12 @@
 import express from "express";
 import webpush from "web-push";
 import mongoose from "mongoose";
-import mconfig from "maruyu-webcommons/node/mconfig";
+import env from "maruyu-webcommons/node/env";
 import { UnexpectedError } from "./errors";
+import { z } from "zod";
 
 
-type PushSubscriptionType = {
+export type PushSubscriptionType = {
   userId: string,
   endpoint: string,
   keys: {
@@ -18,9 +19,9 @@ let PushSubscriptionModel:mongoose.Model<PushSubscriptionType>|null = null;
 
 export function register(){
   // `npx web-push generate-vapid-keys`
-  const publicVapidKey = mconfig.get("publicVapidKey");
-  const privateVapidKey = mconfig.get("privateVapidKey");
-  const vapidEmail = mconfig.get("vapidEmail");
+  const publicVapidKey = env.get("PUBLIC_VAPID_KEY", z.string().nonempty());
+  const privateVapidKey = env.get("PRIVATE_VAPID_KEY", z.string().nonempty());
+  const vapidEmail = env.get("VAPID_EMAIL", z.string().nonempty());
   webpush.setVapidDetails(`mailto:${vapidEmail}`, publicVapidKey, privateVapidKey);
   PushSubscriptionModel = mongoose.model<PushSubscriptionType>("mwc_pushsubscription", 
     new mongoose.Schema<PushSubscriptionType>({
@@ -53,7 +54,7 @@ export function sendPublicVapidKey(
   request:express.Request, 
   response:express.Response
 ){
-  const publicVapidKey = mconfig.get("publicVapidKey");
+  const publicVapidKey = env.get("PUBLIC_VAPID_KEY", z.string().nonempty());
   response.send(publicVapidKey);
 }
 
@@ -123,11 +124,11 @@ export async function sendPush(
   if(PushSubscriptionModel == null) throw new UnexpectedError("[Server Error] Push is not initialized.");
   try{
     await webpush.sendNotification(subscription, JSON.stringify(object));
-  } catch(error:unknown){
+  } catch(error:any){
     if(error instanceof webpush.WebPushError){
       if(error.body == "push subscription has unsubscribed or expired.\n"){
         const { endpoint } = error;
-        await PushSubscriptionModel.findOneAndRemove({ endpoint });
+        await PushSubscriptionModel.findOneAndDelete({ endpoint });
       }
     }
     throw error;

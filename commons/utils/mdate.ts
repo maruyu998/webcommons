@@ -1,3 +1,4 @@
+import { InternalServerError } from "../../node/errors";
 import { DAY, HOUR, MINUTE } from "./time";
 import { isNumber } from "./types";
 
@@ -104,7 +105,10 @@ export class Mdate {
   toDate(){ return new Date(this.time); }
   toString(){ return this.toDate().toString(); }
   toIsoString(){ return this.toDate().toISOString(); }
-  static now(){ return new Mdate(); }
+  static now(...args:any[]):Mdate{
+    if(args.length > 0) throw new InternalServerError("Mdate.now cannot accept arguments.");
+    return new Mdate(Date.now()); 
+  }
   clone(){ return new Mdate(this.time); }
   toTz(tz:number|TimeZone){ return new MdateTz(this.unix, tz); }
   addMs = (ms:number) => new Mdate(this.time + ms);
@@ -138,6 +142,9 @@ export class MdateTz extends Mdate {
     this.setTz(tz);
     if(locale !== undefined && locale != null) this.setLocale(locale);
     if(firstDayOfWeek !== undefined) this.setFirstDayOfWeek(firstDayOfWeek);
+  }
+  static now(tz:number|TimeZone):MdateTz{
+    return new MdateTz(Date.now(), tz);
   }
   toJson(){
     return { cls:"MdateTz", time:this.unix, tz:this.tz, locale:this.locale, firstDayOfWeek:this.firstDayOfWeek };
