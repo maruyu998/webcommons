@@ -1,4 +1,5 @@
-import mconfig from "./mconfig";
+import { z } from "zod";
+import env, { parseDuration } from "./env";
 import express from "express";
 import ClientOAuth2 from "client-oauth2";
 import { randomUUID } from "crypto";
@@ -25,18 +26,18 @@ export type SessionType = {
 };
 
 // const CLIENT_NAME = mconfig.get("clientName");
-const CLIENT_ID = mconfig.get("clientId");
-const CLIENT_SECRET = mconfig.get("clientSecret");
-const OAUTH_DOMAIN = mconfig.get("oauthDomain");
-const SERVICE_DOMAIN = mconfig.get("serviceDomain");
+const CLIENT_ID = env.get("CLIENT_ID", z.string().nonempty());
+const CLIENT_SECRET = env.get("CLIENT_SECRET", z.string().nonempty());
+const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", z.string().startsWith("https://").nonempty());
+const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", z.string().startsWith("https://").nonempty());
 
-const CALLBACK_PATH = mconfig.get("oauthCallbackPath");
-const OAUTH_TOKEN_PATH = mconfig.get("oauthTokenPath");
-const OAUTH_AUTHORIZE_PATH = mconfig.get("oauthAuthorizePath");
-const OAUTH_USER_INFO_PATH = mconfig.get("oauthUserInfoPath");
+const OAUTH_CALLBACK_PATH = env.get("OAUTH_CALLBACK_PATH", z.string().nonempty());
+const OAUTH_TOKEN_PATH = env.get("OAUTH_TOKEN_PATH", z.string().nonempty());
+const OAUTH_AUTHORIZE_PATH = env.get("OAUTH_AUTHORIZE_PATH", z.string().nonempty());
+const OAUTH_USER_INFO_PATH = env.get("OAUTH_USER_INFO_PATH", z.string().nonempty());
 
-const USER_INFO_KEEP_DURATION = mconfig.getNumber("userInfoKeepDuration");
-const AUTH_SESSION_KEEP_DURATION = mconfig.getNumber("authSessionKeepDuration");
+const USER_INFO_KEEP_DURATION = env.get("USER_INFO_KEEP_DURATION", z.string().nonempty().transform(parseDuration));
+const AUTH_SESSION_KEEP_DURATION = env.get("AUTH_SESSION_KEEP_DURATION", z.string().nonempty().transform(parseDuration));
 
 const SCOPES = ["user"];
 
@@ -45,7 +46,7 @@ const oauth2 = new ClientOAuth2({
   clientSecret: CLIENT_SECRET,
   accessTokenUri: new URL(OAUTH_TOKEN_PATH, OAUTH_DOMAIN).toString(),
   authorizationUri: new URL(OAUTH_AUTHORIZE_PATH, OAUTH_DOMAIN).toString(),
-  redirectUri: new URL(CALLBACK_PATH, SERVICE_DOMAIN).toString(),
+  redirectUri: new URL(OAUTH_CALLBACK_PATH, SERVICE_DOMAIN).toString(),
   scopes: SCOPES
 });
 

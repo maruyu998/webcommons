@@ -3,7 +3,8 @@ import session from "express-session";
 import connectMongoSession from "connect-mongodb-session";
 import mongoose from "mongoose";
 import * as maruyuOAuthClient from "./oauth";
-import mconfig from "./mconfig";
+import { z } from "zod";
+import env, { parseDuration } from "./env";
 /* eslint-disable-next-line @typescript-eslint/naming-convention*/
 const MongoDBStore = connectMongoSession(session);
 
@@ -16,7 +17,7 @@ declare module "express-session" {
 };
 
 mongoose.Promise = global.Promise;
-mongoose.connect(mconfig.get("mongoPath")).catch((error)=>{console.error(error);});
+mongoose.connect(env.get("MONGO_PATH",z.string().startsWith("mongodb://").nonempty())).catch((error)=>{console.error(error);});
 mongoose.connection.on("error", function(error:Error) {
   console.error(`MongoDB connection error: [${error.name}] ${error.message}`);
   process.exit(-1);
@@ -26,11 +27,11 @@ const app: express.Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: mconfig.get("sessionSecret"),
+  secret: env.get("SESSION_SECRET", z.string().nonempty()),
   store: new MongoDBStore({
-    uri: mconfig.get("mongoSessionPath"),
-    collection: mconfig.get("mongoSessionCollection"),
-    expires: mconfig.getNumber("sessionKeepDuration"),
+    uri: env.get("MONGO_SESSION_PATH", z.string().startsWith("mongodb://").nonempty()),
+    collection: env.get("MONGO_SESSION_COLLECTION", z.string().nonempty()),
+    expires: env.get("SESSION_KEEP_DURATION", z.string().nonempty().transform(parseDuration)),
     databaseName: undefined,
     connectionOptions: undefined,
     idField: undefined,
@@ -42,7 +43,7 @@ app.use(session({
   rolling: true,
   cookie: {
     httpOnly: true,
-    maxAge: mconfig.getNumber("sessionKeepDuration")
+    maxAge: env.get("SESSION_KEEP_DURATION", z.string().nonempty().transform(parseDuration)),
   }
 }));
 app.set('trust proxy', true);
