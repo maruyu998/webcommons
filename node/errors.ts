@@ -1,6 +1,21 @@
+export class InternalServerError extends Error {
+  constructor(message:string){
+    super(message);
+    this.name = "InternalServerError";
+  }
+}
+
 export class InvalidParamError extends Error {
-  constructor(paramName:string){
-    super(`Required param '${paramName}' is empty of invalid.`);
+  constructor(paramName:string, errorType:"missing"|"invalidType"|"invalidValue"){
+    if(errorType == "missing"){
+      super(`Required param '${paramName}' is empty.`)
+    }else if(errorType == "invalidType"){
+      super(`Required param '${paramName}' is invalid type.`);
+    }else if(errorType == "invalidValue"){
+      super(`Required param '${paramName}' is invalid value.`);
+    }else{
+      throw new UnexpectedError("errorType is required");
+    }
     this.name = "InvalidParamError";
   }
 }

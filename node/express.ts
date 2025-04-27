@@ -10,6 +10,13 @@ export async function regenerateSession(request:express.Request){
   await new Promise<void>((resolve)=>request.session.regenerate(()=>{resolve();}));
 }
 
+export function asyncHandler(
+  fn:(request:express.Request, response:express.Response, next:express.NextFunction)=>Promise<any>
+):express.RequestHandler
+{
+  return (request, response, next) => { Promise.resolve(fn(request, response, next)).catch(next) };
+}
+
 export function sendMessage(response:express.Response, title:string, message:string, verbose:boolean=true){
   if(verbose) {
     const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
