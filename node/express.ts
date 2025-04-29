@@ -23,13 +23,15 @@ export function asyncHandler(
 
 export function sendMessage(response:express.Response, title:string, message:string, verbose:boolean=true){
   if(verbose) {
+    const texts:string[] = [];
     const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
+    texts.push(date);
     try{
       const { userId, userName } = response.locals.currentUserInfo;
-      console.info(`${date} [${title}]: <${userId}>${userName}, ${message}`);
-    }catch(e){
-      console.info(`${date} [${title}]: ${message}`);
-    }
+      texts.push(`${userId}:${userName}`);
+    }catch(e){}
+    texts.push(`[${title}]`, message);
+    console.info(texts.join(" "));
   }
   response.json(convertPacket({title, message}));
 }
@@ -37,13 +39,15 @@ export function sendMessage(response:express.Response, title:string, message:str
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function sendData(response:express.Response, title:string, message:string, data:any, verbose:boolean=true):void{
   if(verbose) {
+    const texts:string[] = [];
     const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
+    texts.push(date);
     try{
       const { userId, userName } = response.locals.currentUserInfo;
-      console.info(`${date} [${title}]: <${userId}>${userName}, ${message}`);
-    }catch(e){
-      console.info(`${date} [${title}]: ${message}`);
-    }
+      texts.push(`${userId}:${userName}`);
+    }catch(e){}
+    texts.push(`[${title}]`, message);
+    console.info(texts.join(" "));
   }
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, data}));
@@ -54,12 +58,14 @@ export function sendError(response:express.Response, error:Error, data?:any):voi
   const title = error.name;
   const message = error.message;
   const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
+  const texts:string[] = [];
+  texts.push(date);
   try{
     const { userId, userName } = response.locals.currentUserInfo;
-    console.error(`${date} [${title}]: <${userId}>${userName}, ${message}`);
-  }catch(e){
-    console.error(`${date} [${title}]: ${message}`);
-  }
+    texts.push(`${userId}:${userName}`);
+  }catch(e){}
+  texts.push(`[${title}]`, message);
+  console.error(texts.join(" "));
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, error, data}));
 }
