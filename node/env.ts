@@ -37,6 +37,12 @@ export function parseListObject(str: string): Record<string, string>[] {
           .map(parseObject);
 }
 
+export function parseList(str: string): string[] {
+  return str.split(";")
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+}
+
 function get<TInput,TOutput>(key:string, schema:ZodType<TOutput,ZodTypeDef,TInput>):TOutput{
   const value = process.env[key];
   if(value === undefined){
