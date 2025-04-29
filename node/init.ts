@@ -8,6 +8,7 @@ import ipaddr from 'ipaddr.js';
 import * as maruyuOAuthClient from "./oauth";
 import { z } from "zod";
 import env, { parseDuration, parseList } from "./env";
+import { parseStats } from "./middleware";
 /* eslint-disable-next-line @typescript-eslint/naming-convention*/
 const MongoDBStore = connectMongoSession(session);
 
@@ -98,5 +99,6 @@ app.use(session({
     sameSite: "lax"
   }
 }));
+app.use(parseStats);
 
 export default app;
