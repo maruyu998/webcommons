@@ -61,6 +61,7 @@ app.use(rateLimit({
 const SCRIPT_SOURCES = env.get("SCRIPT_SOURCES",z.string().transform(parseList));
 const STYLE_SOURCES = env.get("STYLE_SOURCES",z.string().transform(parseList));
 const FONT_SOURCES = env.get("FONT_SOURCES",z.string().transform(parseList));
+const FRAME_SOURCES = env.get("FRAME_SOURCES",z.string().transform(parseList));
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -71,6 +72,7 @@ app.use(helmet({
       "style-src": ["'self'", "'unsafe-inline'", ...STYLE_SOURCES],
       "img-src": ["'self'", "data:"],
       "font-src": ["'self'", ...FONT_SOURCES],
+      "frame-src": ["'self'", ...FRAME_SOURCES]
     },
   },
 }));
