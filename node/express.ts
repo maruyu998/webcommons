@@ -1,6 +1,10 @@
 import express from "express";
 import { convertPacket } from "../commons/utils/packet";
-import { Mdate, MdateTz } from "../commons/utils/mdate";
+import { MdateTz, TIME_ZONES, TimeZone } from "../commons/utils/mdate";
+import env from "./env";
+import { z } from "zod";
+
+const SERVER_TIME_ZONE = env.get("SERVER_TIME_ZONE", z.enum(Object.keys(TIME_ZONES) as [TimeZone, ...TimeZone[]]));
 
 export async function saveSession(request:express.Request){
   await new Promise<void>((resolve)=>request.session.save(()=>resolve()));
@@ -21,29 +25,33 @@ export function asyncHandler(
   return (request, response, next) => { Promise.resolve(fn(request, response, next)).catch(next) };
 }
 
+function generateLogText(response:express.Response, title:string, message:string){
+  const logTexts:string[] = [];
+  const date = MdateTz.now(SERVER_TIME_ZONE).format("YYYY/MM/DD_HH:mm:ss");
+  logTexts.push(date);
+  try{
+    const { ip } = response.locals.stats;
+    logTexts.push(`${ip}`);
+  }catch(e){}
+  try{
+    const { userId, userName } = response.locals.currentUserInfo;
+    logTexts.push(`${userId}:${userName}`);
+  }catch(e){}
+  logTexts.push(`[${title}]`, message);
+  return logTexts.join(" ");
+}
+
 export function sendMessage(response:express.Response, title:string, message:string, verbose:boolean=true){
-  if(verbose) {
-    const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
-    try{
-      const { userId, userName } = response.locals.currentUserInfo;
-      console.info(`${date} [${title}]: <${userId}>${userName}, ${message}`);
-    }catch(e){
-      console.info(`${date} [${title}]: ${message}`);
-    }
+  if(verbose){
+    console.info(generateLogText(response, title, message));
   }
   response.json(convertPacket({title, message}));
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function sendData(response:express.Response, title:string, message:string, data:any, verbose:boolean=true):void{
-  if(verbose) {
-    const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
-    try{
-      const { userId, userName } = response.locals.currentUserInfo;
-      console.info(`${date} [${title}]: <${userId}>${userName}, ${message}`);
-    }catch(e){
-      console.info(`${date} [${title}]: ${message}`);
-    }
+  if(verbose){
+    console.info(generateLogText(response, title, message));
   }
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, data}));
@@ -53,13 +61,7 @@ export function sendData(response:express.Response, title:string, message:string
 export function sendError(response:express.Response, error:Error, data?:any):void{
   const title = error.name;
   const message = error.message;
-  const date = Mdate.now().toTz("Asia/Tokyo").format("YYYY/MM/DD_HH:mm:ss");
-  try{
-    const { userId, userName } = response.locals.currentUserInfo;
-    console.error(`${date} [${title}]: <${userId}>${userName}, ${message}`);
-  }catch(e){
-    console.error(`${date} [${title}]: ${message}`);
-  }
+  console.error(generateLogText(response, title, message));
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, error, data}));
 }

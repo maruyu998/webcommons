@@ -3,9 +3,12 @@ import session from "express-session";
 import connectMongoSession from "connect-mongodb-session";
 import mongoose from "mongoose";
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import ipaddr from 'ipaddr.js';
 import * as maruyuOAuthClient from "./oauth";
 import { z } from "zod";
-import env, { parseDuration } from "./env";
+import env, { parseDuration, parseList } from "./env";
+import { parseStats } from "./middleware";
 /* eslint-disable-next-line @typescript-eslint/naming-convention*/
 const MongoDBStore = connectMongoSession(session);
 
@@ -25,22 +28,51 @@ mongoose.connection.on("error", function(error:Error) {
 });
 
 const app: express.Express = express();
-app.set('trust proxy', true);
+
+const TRUST_PROXIES = env.get("TRUST_PROXIES",z.string().transform(parseList));
+console.log({TRUST_PROXIES, 'trust proxy': TRUST_PROXIES.length});
+app.set('trust proxy', TRUST_PROXIES.length); 
+
+const TRUSTED_SUBNETS = env.get("TRUSTED_SUBNETS",z.string().transform(parseList));
+const RATE_LIMIT_WINDOW = env.get("RATE_LIMIT_WINDOW",z.string().nonempty().transform(parseDuration));
+const RATE_LIMIT_COUNT = env.get("RATE_LIMIT_COUNT",z.coerce.number().positive());
+console.log({TRUSTED_SUBNETS, RATE_LIMIT_WINDOW, RATE_LIMIT_COUNT});
+app.use(rateLimit({
+  windowMs: RATE_LIMIT_WINDOW,
+  max: RATE_LIMIT_COUNT,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req, res) => {
+    const ip = req.ip || '';
+    if(!ipaddr.isValid(ip)) return false;
+    const addr = ipaddr.parse(ip);
+    return TRUSTED_SUBNETS.some(subnetStr => {
+      const [subnetIpStr, prefixLengthStr] = subnetStr.split('/');
+      if(!subnetIpStr || !prefixLengthStr) return false;
+      const subnetIp = ipaddr.parse(subnetIpStr);
+      const prefixLength = parseInt(prefixLengthStr, 10);
+      if(addr.kind() == "ipv4" && subnetIp.kind() == "ipv4") return (addr as ipaddr.IPv4).match((subnetIp as ipaddr.IPv4), prefixLength);
+      if(addr.kind() == "ipv6" && subnetIp.kind() == "ipv6") return (addr as ipaddr.IPv6).match((subnetIp as ipaddr.IPv6), prefixLength);
+      return false;
+    });
+  },
+}));
+
+const SCRIPT_SOURCES = env.get("SCRIPT_SOURCES",z.string().transform(parseList));
+const STYLE_SOURCES = env.get("STYLE_SOURCES",z.string().transform(parseList));
+const FONT_SOURCES = env.get("FONT_SOURCES",z.string().transform(parseList));
+const FRAME_SOURCES = env.get("FRAME_SOURCES",z.string().transform(parseList));
+
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
     directives: {
       "default-src": ["'self'"],
-      "script-src": [
-        "'self'",
-        "https://cdn.tailwindcss.com",
-      ],
-      "style-src": [
-        "'self'",
-        "'unsafe-inline'",
-      ],
+      "script-src": ["'self'", ...SCRIPT_SOURCES],
+      "style-src": ["'self'", "'unsafe-inline'", ...STYLE_SOURCES],
       "img-src": ["'self'", "data:"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "font-src": ["'self'", ...FONT_SOURCES],
+      "frame-src": ["'self'", ...FRAME_SOURCES]
     },
   },
 }));
@@ -69,5 +101,6 @@ app.use(session({
     sameSite: "lax"
   }
 }));
+app.use(parseStats);
 
 export default app;

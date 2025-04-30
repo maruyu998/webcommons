@@ -1,10 +1,21 @@
 import express from "express";
-import { sendError } from "./express";
+import { getIpAddress, sendError } from "./express";
 import { InvalidParamError, AuthenticationError, UnexpectedError } from "./errors";
 import { getUserInfo } from "./oauth";
 import { isObject } from "../commons/utils/types";
 import { getInfoFromApiKey } from "./apiauth";
 import { z } from "zod";
+
+export async function parseStats(
+  request:express.Request,
+  response:express.Response,
+  next:express.NextFunction
+){
+  response.locals.stats = {
+    ip: getIpAddress(request)
+  };
+  next();
+}
 
 export async function requireSignin(
   request:express.Request, 
