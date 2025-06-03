@@ -89,7 +89,7 @@ export function useStateSession<T>(
 let pendingUpdates: Record<string, string|undefined> = {};
 let updateTimer: NodeJS.Timeout|null = null;
 const applyBatchUpdates = (setSearchParams: (params: Record<string, string>) => void) => {
-  if (updateTimer) return; // すでにタイマーが動作中ならスキップ
+  if(updateTimer) return; // すでにタイマーが動作中ならスキップ
   updateTimer = setTimeout(() => {
     const filteredUpdates: Record<string, string> = Object.entries(pendingUpdates)
       .filter(([_, value]) => value !== undefined) // undefined をフィルタリング
@@ -97,8 +97,10 @@ const applyBatchUpdates = (setSearchParams: (params: Record<string, string>) => 
         acc[key] = value as string; // value は string のみ
         return acc;
       }, {} as Record<string, string>);
-
-    setSearchParams(filteredUpdates);
+    const currentParams = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+    const hasDiff = Object.keys(filteredUpdates).some(key => currentParams[key] !== filteredUpdates[key])
+                || Object.keys(currentParams).some(key => key in pendingUpdates && pendingUpdates[key] === undefined);
+    if(hasDiff) setSearchParams(filteredUpdates);
     pendingUpdates = {};
     updateTimer = null;
   }, 100); // 100ms 待機して一括反映
