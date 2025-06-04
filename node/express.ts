@@ -3,6 +3,7 @@ import { convertPacket } from "../commons/utils/packet";
 import { MdateTz, TIME_ZONES, TimeZone } from "../commons/utils/mdate";
 import env from "./env";
 import { z } from "zod";
+import { InternalServerError } from "./errors";
 
 const SERVER_TIME_ZONE = env.get("SERVER_TIME_ZONE", z.enum(Object.keys(TIME_ZONES) as [TimeZone, ...TimeZone[]]));
 
@@ -59,10 +60,14 @@ export function sendData(response:express.Response, title:string, message:string
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function sendError(response:express.Response, error:Error, data?:any):void{
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+  const { url, method } = response.locals.stats;
+  console.error(generateLogText(response, error.name, error.message), `${[method]}${url}`);
+  if(error instanceof InternalServerError){
+    error = new InternalServerError("Internal Server Error");
+  }
   const title = error.name;
   const message = error.message;
-  console.error(generateLogText(response, title, message));
-  /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   response.json(convertPacket({title, message, error, data}));
 }
 
