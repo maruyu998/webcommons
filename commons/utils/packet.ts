@@ -17,7 +17,8 @@ export function convertPacket({
   developMode?: boolean
 }):Packet{
   function convert(data?:PacketSourceDataType):PacketConvertedData{
-    if(data == null) return { type:"null", data: null };
+    if(data === undefined) return { type:"undefined", data:undefined };
+    if(data === null) return { type:"null", data: null };
     if(isString(data)) return { type:"string", data};
     if(isNumber(data)) return { type:"number", data };
     if(isBoolean(data)) return { type:"boolean", data };
@@ -54,9 +55,10 @@ export function deconvertPacket(packet:Packet): DecomposedPacket{
     if(cdata.type === "mdateTz") return MdateTz.fromJson(cdata.data as {cls:string, time:number, tz:number});
     if(cdata.type === "mdate") return Mdate.fromJson(cdata.data as {cls:string, time:number});
     if(cdata.type === "array") return (cdata.data as PacketConvertedData[]).map(o=>deconvert(o));
-    if(cdata.type === "object") return Object.assign({}, 
+    if(cdata.type === "object") return Object.assign({},
       ...Object.entries(cdata.data as {[key:string]:PacketConvertedData}).map(([k,v])=>({[k]:deconvert(v)}))
     ) as {[key:string]:PacketSourceDataType};
+    if(cdata.type === "undefined") return undefined;
     if(cdata.type === "null") return null;
     console.error(cdata, typeof cdata.data);
     throw new Error("not implemented in packet conditions");

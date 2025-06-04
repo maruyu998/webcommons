@@ -1,4 +1,12 @@
-export function parseColor(colorText:string){
+import { z } from "zod";
+
+export const HexColorSchema = z.string()
+                              .regex(/^#[0-9a-fA-F]{6}$/)
+                              .transform(c=>c.toLowerCase())
+                              .brand<"HexColor">();
+export type HexColorType = z.infer<typeof HexColorSchema>;
+
+export function parseColor(colorText:HexColorType){
   if(colorText[0] == "#"){
     const [red, green, blue] = [1,3,5].map(i=>colorText.slice(i,i+2)).map(c=>parseInt(c,16));
     return {red, green, blue};
@@ -7,11 +15,11 @@ export function parseColor(colorText:string){
   }
 }
 
-export function printColor({red,green,blue}:{red:number,green:number,blue:number}){
+export function printColor({red,green,blue}:{red:number,green:number,blue:number}):HexColorType{
   const _red = Math.floor(red).toString(16);
   const _green = Math.floor(green).toString(16);
   const _blue = Math.floor(blue).toString(16);
-  return `#${_red}${_green}${_blue}`;
+  return `#${_red}${_green}${_blue}` as HexColorType;
 }
 
 export function isBrightColor({red,green,blue}:{red:number,green:number,blue:number}){

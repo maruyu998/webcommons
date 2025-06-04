@@ -1,17 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
-import { 
-  RiInformationLine, 
-  RiCheckboxCircleLine, 
-  RiLoader4Line, 
-  RiAlertLine, 
-  RiErrorWarningLine, 
+import {
+  RiInformationLine,
+  RiCheckboxCircleLine,
+  RiLoader4Line,
+  RiAlertLine,
+  RiErrorWarningLine,
   RiCloseLine
 } from "@remixicon/react";
-import { useToast } from "./provider";
+import { ToastType } from "./types";
 
-export default function Toast(){
-  
-  const { toastList, deleteToast } = useToast();
+export default function ToastDisplay({
+  toastList,
+  deleteToast,
+}:{
+  toastList: ToastType[],
+  deleteToast: (id:string)=>void;
+}){
   const toastVs = {
     info: {
       icon: <RiInformationLine className="text-lg mr-2" />,
@@ -44,13 +48,13 @@ export default function Toast(){
     <div className="flex flex-col-reverse gap-4 shadow-lg">
       {
         toastList.map(({id, title, message, variant, deleteAt})=>(
-          <div 
-            key={id} 
+          <div
+            key={id}
             className={`
-              toast-item animate-slide-in-right 
-              border-l-4 
-              ${toastVs[variant].bgColor} 
-              ${toastVs[variant].borderColor} 
+              toast-item animate-slide-in-right
+              border-l-4
+              ${toastVs[variant].bgColor}
+              ${toastVs[variant].borderColor}
               text-white text-base p-4 min-w-48 relative
             `}
           >

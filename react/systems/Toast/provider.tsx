@@ -1,18 +1,12 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { generateRandom } from "../../../commons/utils/random";
+import { ToastType } from "./types";
+import ToastDisplay from './display';
 
-export type ToastType = {
-  id: string,
-  title: string|null, 
-  message: string|null, 
-  variant: "info"|"success"|"loading"|"warning"|"error"
-  deleteAt: Date
-}
 
 type ToastProviderType = {
   addToast: (title:string|null,message:string|null,variant:ToastType["variant"],duration?:number)=>void,
   deleteToast: (id:string)=>void,
-  toastList: ToastType[],
 }
 
 const ToastContext = createContext<ToastProviderType|undefined>(undefined);
@@ -23,7 +17,7 @@ export function useToast(){
   return context;
 }
 
-export function ToastProvider({children}){
+export function ToastProvider({children}:{children:React.ReactNode}){
 
   const [ toastList, setToastList ] = useState<ToastType[]>([]);
   const toastListRef = useRef<ToastType[]>([]);
@@ -56,8 +50,12 @@ export function ToastProvider({children}){
       value={{
         addToast,
         deleteToast,
-        toastList,
       }}
-    >{children}</ToastContext.Provider>
+    >
+      {children}
+      <div className="fixed bottom-2 right-2 z-50">
+        <ToastDisplay toastList={toastList} deleteToast={deleteToast} />
+      </div>
+    </ToastContext.Provider>
   )
 }
