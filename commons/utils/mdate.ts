@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { InternalServerError } from "../../node/errors";
 import { DAY, HOUR, MINUTE } from "./time";
 import { isNumber } from "./types";
@@ -29,6 +30,7 @@ export const TIME_ZONES = {
 } as const;
 type TypeOfTimeZone = typeof TIME_ZONES;
 export type TimeZone = keyof TypeOfTimeZone;
+export const TimeZoneSchema = z.enum(["UTC", "Asia/Tokyo"]);
 
 export type Unit = "year"|"month"|"date"|"hour"|"minute"|"second"|"millisecond";
 export const LOCALE_FORMATS = {
@@ -107,7 +109,7 @@ export class Mdate {
   toIsoString(){ return this.toDate().toISOString(); }
   static now(...args:any[]):Mdate{
     if(args.length > 0) throw new InternalServerError("Mdate.now cannot accept arguments.");
-    return new Mdate(Date.now()); 
+    return new Mdate(Date.now());
   }
   clone(){ return new Mdate(this.time); }
   toTz(tz:number|TimeZone){ return new MdateTz(this.unix, tz); }
@@ -116,7 +118,7 @@ export class Mdate {
   isBefore = (mdate:Mdate) => this.unix < mdate.unix;
   isSame = (mdate:Mdate) => this.unix === mdate.unix;
   isAfter = (mdate:Mdate) => this.unix > mdate.unix;
-  
+
   static getDiff(a:Mdate, b:Mdate, unit:Unit): number {
     let diff = b.unix - a.unix;
     if(unit === "millisecond") return diff;
@@ -151,13 +153,13 @@ export class MdateTz extends Mdate {
   };
   static fromJson({
     cls,
-    time, 
+    time,
     tz,
     locale,
     firstDayOfWeek
   }:{
     cls: string,
-    time:number, 
+    time:number,
     tz:number,
     locale?:Locale|null,
     firstDayOfWeek?:number|null
@@ -172,7 +174,7 @@ export class MdateTz extends Mdate {
     return date;
   }
   clone(){ return new MdateTz(this.unix, this.tz, this.locale, this.firstDayOfWeek) };
-  
+
   get(target:Unit){
     if(target === "year") return this.getFullYear();
     if(target === "month") return this.getMonth();
@@ -207,7 +209,7 @@ export class MdateTz extends Mdate {
     if(target === "dayOfWeek") return this.forkSetDayOfWeek(value);
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
-  setTz(tz:number|TimeZone):MdateTz{ 
+  setTz(tz:number|TimeZone):MdateTz{
     if(isNumber(tz)) this.tz = tz as number;
     else if(tz in TIME_ZONES) this.tz = TIME_ZONES[tz];
     else throw new Error(`timezone is not proper. :${tz}`);
@@ -233,7 +235,7 @@ export class MdateTz extends Mdate {
   private getMinutes =      () => this.fakeDate.getUTCMinutes();
   private getSeconds =      () => this.fakeDate.getUTCSeconds();
   private getMilliSeconds = () => this.fakeDate.getUTCMilliseconds();
-  
+
   // GET [ dayOfWeek / dayOfYear / weekOfYear ]
   private getDayOfWeek =    () => this.fakeDate.getUTCDay();
   private getDayOfYear =    () => {
@@ -250,12 +252,12 @@ export class MdateTz extends Mdate {
   private getFullYearStr =     () => this.getFullYear().toString();
   private getMonthStr =        () => (this.getMonth() + 1).toString();
   private getDateStr =         () => this.getDate().toString();
-  private getHoursStr =        () => this.getHours().toString(); 
+  private getHoursStr =        () => this.getHours().toString();
   private getHalfHourStr =     () => (this.getHours()%12).toString();
   private getMinutesStr =      () => this.getMinutes().toString();
   private getSecondsStr =      () => this.getSeconds().toString();
   private getMilliSecondsStr = () => this.getMilliSeconds().toString();
-  
+
   // GET str [ dayOfYear / weekOfYear ]
   private getDayOfYearStr =   () => this.getDayOfYear().toString();
   private getWeekOfYearStr =   () => this.getWeekOfYear().toString();
@@ -281,7 +283,7 @@ export class MdateTz extends Mdate {
 
 
   private forkSetFakeDate = (time:number) => new MdateTz(this.unix - (this.fakeDate.getTime() - time), this.tz, this.locale, this.firstDayOfWeek);
-  
+
   // FORK_SET [ year / month / date / hour / minute / second / millisecond ]
   private forkSetFullYear =  (year:number) => this.forkSetFakeDate(this.fakeDate.setUTCFullYear(year));
   private forkSetMonth =    (month:number) => this.forkSetFakeDate(this.fakeDate.setUTCMonth(month));
@@ -408,7 +410,7 @@ export class MdateTz extends Mdate {
   resetWeek(){
     return this.forkSetDayOfWeek(this.firstDayOfWeek||0);
   }
-  
+
   // getDateString(timezone:string):YYYYMMDD{
   //     return this.format("YYYY-MM-DD",timezone) as YYYYMMDD;
   // }
@@ -419,3 +421,6 @@ export class MdateTz extends Mdate {
     return this.forkAddMonth(1).forkSetDate(-1).get("date");
   }
 }
+
+export const MdateTzSchema = z.custom<MdateTz>((val) => val instanceof MdateTz);
+export const MdateSchema = z.custom<Mdate>((val) => val instanceof Mdate);

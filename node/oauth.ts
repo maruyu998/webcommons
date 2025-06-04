@@ -4,24 +4,23 @@ import express from "express";
 import ClientOAuth2 from "client-oauth2";
 import { randomUUID } from "crypto";
 import cors from "cors";
-import fetch from "node-fetch";
 import pkceChallenge from "pkce-challenge";
 import { saveSession, regenerateSession, sendError } from "./express";
-import { getPacketWithOwnFetch } from "../commons/utils/fetch";
+import { getPacket } from "../commons/utils/fetch";
 import { AuthenticationError, InvalidParamError, PermissionError } from "./errors";
 import { PacketSourceDataType } from "../commons/types/packet";
 
 type AuthSessionType = { codeVerifier: string, returnTo: string, expiredAt:Date };
 type TokenSessionType = { accessToken:string, tokenType:string, refreshToken:string, scope:string, expiresAt:Date };
 export type UserInfoType = {
-  userId: string, 
-  userName: string, 
+  userId: string,
+  userName: string,
   data: object,
   expiresAt: Date
 };
 export type SessionType = { 
-  auths?: { [state:string]: AuthSessionType }, 
-  token?: TokenSessionType, 
+  auths?: { [state:string]: AuthSessionType },
+  token?: TokenSessionType,
   userInfo?: UserInfoType
 };
 
@@ -112,19 +111,19 @@ async function refreshAccessToken(request:express.Request):Promise<boolean>{
   if(token === undefined) throw new AuthenticationError("token is not saved");
   const { accessToken, tokenType, refreshToken, scope } = token;
   const tokenClient = new ClientOAuth2.Token(oauth2, {
-    access_token: accessToken, 
-    token_type: tokenType, 
-    refresh_token: refreshToken, 
+    access_token: accessToken,
+    token_type: tokenType,
+    refresh_token: refreshToken,
     scope
   });
   const isSuccess = await tokenClient.refresh()
   .then(async token=>{
     if(token.data.name === "AuthenticationError") throw new AuthenticationError("refreshToken is expired");
     const { 
-      access_token: accessToken, 
-      token_type: tokenType, 
-      refresh_token: refreshToken, 
-      scope, 
+      access_token: accessToken,
+      token_type: tokenType,
+      refresh_token: refreshToken,
+      scope,
       expires_at: expiresAt 
     } = token.data;
     await regenerateSession(request);
@@ -155,7 +154,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   const accessToken = await getAccessToken(request).catch(()=>null);
   if(accessToken == null) return null;
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_DOMAIN);
-  const fetchReturn = await getPacketWithOwnFetch(fetch, url.toString(), { accessToken })
+  const fetchReturn = await getPacket(url.toString(), { accessToken })
                       .then(({data})=>data as PacketSourceDataType)
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn == null) return null;
@@ -206,10 +205,10 @@ export async function processCallbackThenRedirect(request:express.Request, respo
   .catch((error:Error)=>{sendError(response, error); throw error;})
   .then(async token=>{
     const { 
-      access_token: accessToken, 
-      token_type: tokenType, 
-      refresh_token: refreshToken, 
-      scope, 
+      access_token: accessToken,
+      token_type: tokenType,
+      refresh_token: refreshToken,
+      scope,
       expires_at: expiresAt
     } = token.data;
     await regenerateSession(request);

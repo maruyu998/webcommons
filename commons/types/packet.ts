@@ -1,15 +1,15 @@
 import { Mdate, MdateTz } from "../utils/mdate";
 
-type BasicSourceTypes = string|number|boolean|Date|Mdate|MdateTz|null;
+type BasicSourceTypes = string|number|boolean|Date|Mdate|MdateTz|null|undefined;
 
 export type PacketSourceDataType = BasicSourceTypes
                                   |{[key:string]:PacketSourceDataType}
                                   |{[key:string]:PacketSourceDataType[]}
                                   |PacketSourceDataType[];
 
-type ValueType = string|number|boolean|null|{cls:string,time:number}|{cls:string,time:number,tz:number}|ValueType[]|PacketConvertedData[]|{[key:string]:PacketConvertedData};
+type ValueType = string|number|boolean|null|undefined|{cls:string,time:number}|{cls:string,time:number,tz:number}|ValueType[]|PacketConvertedData[]|{[key:string]:PacketConvertedData};
 export type PacketConvertedData = {
-  type: "string"|"number"|"boolean"|"date"|"mdate"|"mdateTz"|"array"|"object"|"null",
+  type: "string"|"number"|"boolean"|"date"|"mdate"|"mdateTz"|"array"|"object"|"null"|"undefined",
   data: ValueType
 };
 

@@ -1,12 +1,14 @@
 import { deconvertPacket } from "./packet";
 import { Packet, DecomposedPacket } from "../types/packet";
+import { z } from "zod";
 
 export const userAgentExample = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36";
 
-async function processFetch(
-  fetchPromise:Promise<Response>, 
-  windowForRedirect?:Window&typeof globalThis
-):Promise<DecomposedPacket>{
+async function processFetch<T extends z.ZodRawShape>(
+  fetchPromise:Promise<Response>,
+  windowForRedirect?:Window&typeof globalThis,
+  zodSchema?: z.ZodObject<T>,
+):Promise<DecomposedPacket|{title:string,message:string,data:T}>{
   return await fetchPromise
     .then(res=>{
       if(windowForRedirect === undefined) return res;
@@ -19,10 +21,22 @@ async function processFetch(
       throw new Error(`fetch status is not 200, [${res.status}] ${res.statusText} fetching ${res.url}`)
     })
     .then(res=>res.json())
+    .catch(error=>{
+      if(error.name == "SyntaxError") {
+        console.error("JSON Parse Error", error.message);
+        throw new Error(`Response is not JSON`);
+      }
+    })
     .then((packet:Packet)=>deconvertPacket(packet))
     .then(({title, message, data, error})=>{
       if(error) throw error;
-      return { title, message, data };
+      if(zodSchema == undefined) return { title, message, data };
+      const { success, error: zodError, data:zodData } = zodSchema.safeParse(data);
+      if(!success){
+        console.error(zodError.format());
+        throw zodError;
+      }
+      return { title, message, data: zodData }
     });
 }
 
@@ -39,7 +53,7 @@ function createHeader(option:OptionType){
   return {
     "Accept": "application/json",
     "Content-Type": "application/json",
-    "Authorization": accessToken ? `Bearer ${accessToken}` : "", 
+    "Authorization": accessToken ? `Bearer ${accessToken}` : "",
     mode, credential
   };
 }
@@ -49,93 +63,37 @@ function createHeaderForm(option:OptionType){
   const mode = cors || "same-origin";
   const credential = cors === "cors" ? "include" : "same-origin";
   return {
-    "Authorization": accessToken ? `Bearer ${accessToken}` : "", 
+    "Authorization": accessToken ? `Bearer ${accessToken}` : "",
     mode, credential
   };
 }
 
-export function getPacketWithOwnFetch(
-  /* eslint-disable-next-line */
-  fetch, 
-  url: string, 
-  option: OptionType={}
-):Promise<DecomposedPacket>{
-  /* eslint-disable-next-line */
-  return processFetch(fetch(url, {
-    method: "GET",
-    headers: createHeader(option)
-  }) as Promise<Response>);
-}
-
-export function postPacketWithOwnFetch(
-  /* eslint-disable-next-line */
-  fetch, 
-  url: string, 
-  object: object, 
-  option: OptionType={}
-):Promise<DecomposedPacket>{
-  /* eslint-disable-next-line */
-  return processFetch(fetch(url, {
-    method: "POST",
-    headers: createHeader(option),
-    body: JSON.stringify(object)
-  }) as Promise<Response>);
-}
-
-export function putPacketWithOwnFetch(
-  /* eslint-disable-next-line */
-  fetch, 
-  url: string, 
-  object: object, 
-  option: OptionType={}
-):Promise<DecomposedPacket>{
-  /* eslint-disable-next-line */
-  return processFetch(fetch(url, {
-    method: "PUT",
-    headers: createHeader(option),
-    body: JSON.stringify(object)
-  }) as Promise<Response>);
-}
-
-export function deletePacketWithOwnFetch(
-  /* eslint-disable-next-line */
-  fetch, 
-  url: string, 
-  object: object, 
-  option: OptionType={}
-):Promise<DecomposedPacket>{
-  /* eslint-disable-next-line */
-  return processFetch(fetch(url, {
-    method: "DELETE",
-    headers: createHeader(option),
-    body: JSON.stringify(object)
-  }) as Promise<Response>);
-}
-
-export function getPacket(
-  url: string, 
+export function getPacket<T extends z.ZodRawShape>(
+  url: string,
   option: OptionType={},
-  windowForRedirect?: Window & typeof globalThis
+  zodSchema?: z.ZodObject<T>,
+  windowForRedirect?: Window & typeof globalThis,
 ){
   const fetchPromise = fetch(url, {
     method: "GET",
     headers: createHeader(option)
   });
-  return processFetch(fetchPromise, windowForRedirect);
+  return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }
 
-export function postPacket(
-  url: string, 
-  object: object, 
+export function postPacket<T extends z.ZodRawShape>(
+  url: string,
+  object: object,
   option: OptionType={},
-  windowForRedirect?: Window & typeof globalThis
+  zodSchema?: z.ZodObject<T>,
+  windowForRedirect?: Window & typeof globalThis,
 ){
   const fetchPromise = fetch(url, {
     method: "POST",
     headers: createHeader(option),
     body: JSON.stringify(object)
   });
-  return processFetch(fetchPromise, windowForRedirect);
+  return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }
 
 export function postPacketForm(
@@ -156,30 +114,32 @@ export function postPacketForm(
   return processFetch(fetchPromise, windowForRedirect);
 }
 
-export function putPacket(
-  url: string, 
-  object: object, 
+export function putPacket<T extends z.ZodRawShape>(
+  url: string,
+  object: object,
   option: OptionType={},
-  windowForRedirect?: Window & typeof globalThis
+  zodSchema?: z.ZodObject<T>,
+  windowForRedirect?: Window & typeof globalThis,
 ){
   const fetchPromise = fetch(url, {
     method: "PUT",
     headers: createHeader(option),
     body: JSON.stringify(object)
   });
-  return processFetch(fetchPromise, windowForRedirect);
+  return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }
 
-export function deletePacket(
-  url: string, 
-  object: object, 
+export function deletePacket<T extends z.ZodRawShape>(
+  url: string,
+  object: object,
   option: OptionType={},
-  windowForRedirect?: Window & typeof globalThis
+  zodSchema?: z.ZodObject<T>,
+  windowForRedirect?: Window & typeof globalThis,
 ){
   const fetchPromise = fetch(url, {
     method: "DELETE",
     headers: createHeader(option),
     body: JSON.stringify(object)
   });
-  return processFetch(fetchPromise, windowForRedirect);
+  return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }
