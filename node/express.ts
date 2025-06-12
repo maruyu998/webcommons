@@ -23,7 +23,17 @@ export function asyncHandler(
   fn:(request:express.Request, response:express.Response, next:express.NextFunction)=>Promise<any>
 ):express.RequestHandler
 {
-  return (request, response, next) => { Promise.resolve(fn(request, response, next)).catch(next) };
+  return (request, response, next) => { 
+    Promise.resolve(fn(request, response, next))
+    .catch(error=>{
+      if(error instanceof Error){
+        sendError(response, error);
+      }else{
+        console.error("Unknown error caught:", error);
+        sendError(response, new Error(`Unknown error occurred at ${request.originalUrl}[${request.method}]`));
+      }
+    }
+  ) };
 }
 
 function generateLogText(response:express.Response, title:string, message:string){
