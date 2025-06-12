@@ -74,3 +74,18 @@ export function hsvToRgb({hue,saturation,value}:{hue:number,saturation:number,va
   }
   throw Error(`not implemeneted hue=${hue}, saturation=${saturation}, value=${value}`);
 }
+
+export function generateRandomColor({
+  hue,
+  saturation,
+  value
+}:{
+  hue?: number
+  saturation?: number, 
+  value?: number
+}){
+  if(hue === undefined) hue = Math.floor(Math.random() * 360);
+  if(saturation === undefined) saturation = Math.random();
+  if(value === undefined) value = Math.random();
+  return printColor(hsvToRgb({hue, saturation, value}));
+}

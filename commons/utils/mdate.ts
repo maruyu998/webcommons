@@ -424,3 +424,4 @@ export class MdateTz extends Mdate {
 
 export const MdateTzSchema = z.custom<MdateTz>((val) => val instanceof MdateTz);
 export const MdateSchema = z.custom<Mdate>((val) => val instanceof Mdate);
+export const UnixSchema = z.number().int().positive();
