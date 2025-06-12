@@ -3,7 +3,7 @@ import { convertPacket } from "../commons/utils/packet";
 import { MdateTz, TIME_ZONES, TimeZone } from "../commons/utils/mdate";
 import env from "./env";
 import { z } from "zod";
-import { InternalServerError } from "./errors";
+import { CustomError, InternalServerError } from "./errors";
 
 const SERVER_TIME_ZONE = env.get("SERVER_TIME_ZONE", z.enum(Object.keys(TIME_ZONES) as [TimeZone, ...TimeZone[]]));
 
@@ -63,12 +63,13 @@ export function sendError(response:express.Response, error:Error, data?:any):voi
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   const { url, method } = response.locals.stats;
   console.error(generateLogText(response, error.name, error.message), `${[method]}${url}`);
-  if(error instanceof InternalServerError){
+  if((!(error instanceof CustomError) || error.secret)){
     error = new InternalServerError("Internal Server Error");
   }
   const title = error.name;
   const message = error.message;
-  response.json(convertPacket({title, message, error, data}));
+  const statusCode = error instanceof CustomError ? error.errorcode : 500;
+  response.status(statusCode).json(convertPacket({title, message, error, data}));
 }
 
 export function getIpAddress(request:express.Request):string|null{
