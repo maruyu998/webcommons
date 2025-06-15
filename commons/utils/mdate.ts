@@ -154,6 +154,9 @@ export class MdateTz extends Mdate {
   static now(tz:number|TimeZone):MdateTz{
     return new MdateTz(Date.now(), tz);
   }
+  static resolveTz():TimeZone{
+    return Intl.DateTimeFormat().resolvedOptions().timeZone as TimeZone
+  }
   toJson(){
     return { cls:"MdateTz", time:this.unix, tz:this.tz, locale:this.locale, firstDayOfWeek:this.firstDayOfWeek };
   };
