@@ -1,9 +1,8 @@
 import express from "express";
 import { getIpAddress, sendError } from "./express";
-import { InvalidParamError, AuthenticationError, UnexpectedError } from "./errors";
-import { getUserInfo } from "./oauth";
-import { isObject } from "../commons/utils/types";
-import { getInfoFromApiKey } from "./apiauth";
+import { InvalidParamError, AuthenticationError } from "./errors";
+import { AccessInfoType, getUserInfo, UserInfoType } from "./oauth";
+import { getInfoFromApiKey, PermissionType } from "./apiauth";
 import { z } from "zod";
 
 export async function parseStats(
@@ -25,9 +24,9 @@ export async function requireSignin(
   next:express.NextFunction
 ){
   await getUserInfo(request)
-  .then(currentUserInfo=>{
-    if(currentUserInfo == null) throw new AuthenticationError("current user info is null");
-    response.locals.currentUserInfo = currentUserInfo;
+  .then(userInfo=>{
+    if(userInfo == null) throw new AuthenticationError("current user info is null");
+    response.locals.userInfo = userInfo as UserInfoType;
     next();
   })
   .catch(error=>{
@@ -36,7 +35,7 @@ export async function requireSignin(
   });
 }
 
-export function requireApiKey(...permissionNames:string[]){
+export function requireApiKey(...requiredPermissionList:PermissionType[]){
   return (request:express.Request, response:express.Response, next:express.NextFunction) => {
     const authHeader = request.headers['authorization'] || null;
     if(authHeader == null) return sendError(response, new AuthenticationError("Authentication header is missing."));
@@ -47,10 +46,10 @@ export function requireApiKey(...permissionNames:string[]){
     getInfoFromApiKey(token).then(apiInfo=>{
       if(apiInfo == null) return sendError(response, new AuthenticationError("Authentication Bearer token is invalid"));
       const { userId, permissionList } = apiInfo;
-      for(const permissionName of permissionNames){
-        if(!permissionList.includes(permissionName)) return sendError(response, new AuthenticationError("Required permissions are not included in this ApiKey."));
+      for(const requiredPermission of requiredPermissionList){
+        if(!permissionList.includes(requiredPermission)) return sendError(response, new AuthenticationError("Required permissions are not included in this ApiKey."));
       }
-      response.locals.currentUserInfo = { userId, permissionList };
+      response.locals.accessInfo = { userId, permissionList } as AccessInfoType;
       next();
     });
   }

@@ -9,19 +9,26 @@ import { saveSession, regenerateSession, sendError } from "./express";
 import { getPacket } from "../commons/utils/fetch";
 import { AuthenticationError, InvalidParamError, PermissionError } from "./errors";
 import { PacketSourceDataType } from "../commons/types/packet";
+import { UserIdType, UserNameType } from "../commons/types/user";
+import { PermissionType } from "./apiauth";
 
-type AuthSessionType = { codeVerifier: string, returnTo: string, expiredAt:Date };
+type AuthSessionType = { codeVerifier: string, returnTo: string, expiresAt:Date };
 type TokenSessionType = { accessToken:string, tokenType:string, refreshToken:string, scope:string, expiresAt:Date };
 export type UserInfoType = {
-  userId: string,
-  userName: string,
+  userId: UserIdType,
+  userName: UserNameType,
   data: object,
   expiresAt: Date
 };
+export type AccessInfoType = {
+  userId: UserIdType,
+  permissionList: PermissionType[],
+}
 export type SessionType = { 
   auths?: { [state:string]: AuthSessionType },
   token?: TokenSessionType,
-  userInfo?: UserInfoType
+  userInfo?: UserInfoType,
+  accessInfo?: AccessInfoType,
 };
 
 // const CLIENT_NAME = mconfig.get("clientName");
@@ -159,7 +166,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn == null) return null;
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
-  const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:string, user_name:string, data:object };
+  const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:UserIdType, user_name:UserNameType, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
   await setUserInfoSession(request, { userId, userName, data, expiresAt });
   return { userId, userName, data, expiresAt };
@@ -170,8 +177,8 @@ export async function redirectToSignin(request:express.Request, response:express
   const returnTo = request.url;
   const state = randomUUID();
   const { code_verifier: codeVerifier, code_challenge: codeChallenge } = await pkceChallenge();
-  const expiredAt = new Date(Date.now() + AUTH_SESSION_KEEP_DURATION);
-  await setAuthSession(request, state, { codeVerifier, returnTo, expiredAt });
+  const expiresAt = new Date(Date.now() + AUTH_SESSION_KEEP_DURATION);
+  await setAuthSession(request, state, { codeVerifier, returnTo, expiresAt });
   const codeChallengeMethod = "S256";
   const clientSecret = CLIENT_SECRET;
   // {authorization_uri} ? {client_id=} & {redirect_uri=(service_domain + /api/oauth/callback, etc)}
@@ -191,8 +198,8 @@ export async function processCallbackThenRedirect(request:express.Request, respo
 
   const auth = auths[returnedState];
   if(auth == undefined) return sendError(response, new AuthenticationError("state is not match."));
-  const { codeVerifier, returnTo, expiredAt } = auth;
-  if(expiredAt.getTime() < Date.now()) {
+  const { codeVerifier, returnTo, expiresAt } = auth;
+  if(expiresAt.getTime() < Date.now()) {
     clearAuthSession(request, returnedState);
     return sendError(response, new AuthenticationError("Auth session is expired."));
   }

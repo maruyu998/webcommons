@@ -4,10 +4,12 @@ import mongoose from "mongoose";
 import env from "maruyu-webcommons/node/env";
 import { UnexpectedError } from "./errors";
 import { z } from "zod";
+import { UserIdType } from "../commons/types/user";
+import { UserInfoType } from "./oauth";
 
 
 export type PushSubscriptionType = {
-  userId: string,
+  userId: UserIdType,
   endpoint: string,
   keys: {
     p256dh: string,
@@ -62,7 +64,7 @@ export async function registerSubscription(
   request:express.Request, 
   response:express.Response
 ){
-  const { userId } = response.locals.currentUserInfo;
+  const { userId } = response.locals.userInfo as UserInfoType;
   if(!userId) return response.status(401).json({});
   try{
     const subscription = request.body.subscription;
@@ -87,7 +89,7 @@ export async function unregisterSubscription(
   request:express.Request, 
   response:express.Response
 ){
-  const { userId } = response.locals.currentUserInfo;
+  const { userId } = response.locals.userInfo as UserInfoType;
   if(!userId) return response.status(401).send("signin is required.");
   try{
     const subscription = request.body.subscription;

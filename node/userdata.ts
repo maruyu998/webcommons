@@ -1,7 +1,8 @@
 import mongoose, { Schema } from "mongoose";
+import { UserIdType } from "../commons/types/user";
 
 type UserDataType = {
-  userId: string,
+  userId: UserIdType,
   uniqueKey: string,
   data: any,
   expiresAt?: Date
@@ -35,12 +36,12 @@ const UserDataModel = mongoose.model<UserDataType>("mwc_userdata",
   })()
 );
 
-export async function saveUserData(userId:string,uniqueKey:string,data:any,expiresAt?:Date){
+export async function saveUserData(userId:UserIdType,uniqueKey:string,data:any,expiresAt?:Date){
   const updates = expiresAt ? { data, expiresAt } : { data }
   await UserDataModel.findOneAndUpdate({userId, uniqueKey}, updates, {upsert:true});
 }
 
-export async function getUserData(userId:string,uniqueKey:string){
+export async function getUserData(userId:UserIdType,uniqueKey:string){
   const query = {userId, uniqueKey, $or:[{expiresAt:{$gt:new Date()}}, {expiresAt:{$exists:false}}]};
   const userData = await UserDataModel.findOne(query).lean();
   UserDataModel.deleteMany({expiresAt: { $lte: new Date() }});
@@ -48,6 +49,6 @@ export async function getUserData(userId:string,uniqueKey:string){
   return userData.data;
 }
 
-export async function deleteUserData(userId:string,uniqueKey:string){
+export async function deleteUserData(userId:UserIdType,uniqueKey:string){
   await UserDataModel.findOneAndDelete({userId, uniqueKey});
 }

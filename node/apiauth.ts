@@ -1,13 +1,17 @@
+import { z } from "zod";
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { generateRandom } from "../commons/utils/random";
+import { UserIdType, UserNameType } from "../commons/types/user";
 
+export const PermissionSchema = z.string().brand<"Permission">();
+export type PermissionType = z.infer<typeof PermissionSchema>;
 type ApiauthType = {
   apiauthId: string,
   apiKey: string,
-  userId: string,
-  permissionList: string[],
-  expiredAt?: Date
+  userId: UserIdType,
+  permissionList: PermissionType[],
+  expiresAt: Date|null,
 };
 
 const ApiauthModel = mongoose.model<ApiauthType>("mwc_apiauth", 
@@ -31,8 +35,9 @@ const ApiauthModel = mongoose.model<ApiauthType>("mwc_apiauth",
       type: String,
       required: true,
     }],
-    expiredAt: {
+    expiresAt: {
       type: Date,
+      default: null,
       required: false
     }
   }, {
@@ -40,22 +45,22 @@ const ApiauthModel = mongoose.model<ApiauthType>("mwc_apiauth",
   })
 );
 
-export async function issueApiKey(userId:string, permissionList:string[]=[]){
+export async function issueApiauth(userId:UserIdType, permissionList:PermissionType[]=[]){
   const apiauth = await ApiauthModel.create({userId, permissionList});
   return apiauth.toJSON();
 }
 
-export async function getInfoFromApiKey(apiKey:string):Promise<{userId:string, permissionList:string[], expiredAt?:Date}|null>{
-  const apiauth = await ApiauthModel.findOne({apiKey, $or:[{expiredAt:null}, {expiredAt:{$gt:new Date()}}]});
+export async function getInfoFromApiKey(apiKey:string):Promise<Pick<ApiauthType,"userId"|"permissionList"|"expiresAt">|null>{
+  const apiauth = await ApiauthModel.findOne({apiKey, $or:[{expiresAt:null}, {expiresAt:{$gt:new Date()}}]});
   if(apiauth == null) return null;
-  const { userId, permissionList, expiredAt } = apiauth.toJSON();
-  return { userId, permissionList, expiredAt }
+  const { userId, permissionList, expiresAt } = apiauth.toJSON();
+  return { userId, permissionList, expiresAt }
 }
 
-export async function getUserApiauths(userId: string){
+export async function getUserApiauths(userId:UserIdType){
   const apiauths = await ApiauthModel.find(
     { userId },
-    { _id:0, apiauthId:1, apiKey:1, permissionList:1, expiredAt:1 }
+    { _id:0, apiauthId:1, apiKey:1, permissionList:1, expiresAt:1 }
   ).lean();
   return apiauths;
 }

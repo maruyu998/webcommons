@@ -4,6 +4,7 @@ import { MdateTz, TIME_ZONES, TimeZone } from "../commons/utils/mdate";
 import env from "./env";
 import { z } from "zod";
 import { CustomError, InternalServerError } from "./errors";
+import { AccessInfoType, UserInfoType } from "./oauth";
 
 const SERVER_TIME_ZONE = env.get("SERVER_TIME_ZONE", z.enum(Object.keys(TIME_ZONES) as [TimeZone, ...TimeZone[]]));
 
@@ -45,8 +46,13 @@ function generateLogText(response:express.Response, title:string, message:string
     logTexts.push(`${ip}`);
   }catch(e){}
   try{
-    const { userId, userName } = response.locals.currentUserInfo;
-    logTexts.push(`${userId}:${userName}`);
+    if(response.locals.userInfo){
+      const { userId, userName } = response.locals.userInfo as UserInfoType;
+      logTexts.push(`${userId}:${userName}`);
+    }else if(response.locals.accessInfo){
+      const { userId } = response.locals.accessInfo as AccessInfoType;
+      logTexts.push(`${userId}(API)`);
+    }
   }catch(e){}
   logTexts.push(`[${title}]`, message);
   return logTexts.join(" ");
