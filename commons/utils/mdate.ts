@@ -3,15 +3,7 @@ import { InternalServerError } from "../../node/errors";
 import { DAY, HOUR, MINUTE } from "./time";
 import { isNumber } from "./types";
 
-// type OneToNine = 1|2|3|4|5|6|7|8|9;
-// type ZeroToNine = 0|1|2|3|4|5|6|7|8|9;
-// type YYYY = `19${ZeroToNine}${ZeroToNine}` | `20${ZeroToNine}${ZeroToNine}`;
-// type MM = `0${OneToNine}` | `1${0|1|2}`;
-// type DD = `${0}${OneToNine}` | `${1|2}${ZeroToNine}` | `3${0|1}`;
-// export type YYYYMMDD = `${YYYY}-${MM}-${DD}`;
-export type YYYYMMDD = string;
-
-export function isYYYYMMDD(str:string){
+export function isYYYYMMDD(str:string):boolean{
   if(str.length !== "YYYY-MM-DD".length) return false;
   if(str[4] !== "-" || str[7] !== "-") return false;
   const year = Number(str.slice(0, 4));
@@ -24,13 +16,27 @@ export function isYYYYMMDD(str:string){
   return true;
 }
 
+export const IsoStringSchema = z.string().datetime({ offset: true }).brand<"ISOString">();
+export type IsoStringType = z.infer<typeof IsoStringSchema>;
+
+export const YYYYMMDDSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "Invalid date format. Expected YYYY-MM-DD",
+  })
+  .refine(isYYYYMMDD, {
+    message: "Invalid calendar date",
+  })
+  .brand<"YYYY-MM-DD">();
+export type YYYYMMDD = z.infer<typeof YYYYMMDDSchema>;
+
 export const TIME_ZONES = {
   "UTC": 0,
   "Asia/Tokyo": 9
 } as const;
 type TypeOfTimeZone = typeof TIME_ZONES;
 export type TimeZone = keyof TypeOfTimeZone;
-export const TimeZoneSchema = z.enum(["UTC", "Asia/Tokyo"]);
+export const TimeZoneSchema = z.enum(Object.keys(TIME_ZONES) as [keyof TypeOfTimeZone]);
+
 
 export type Unit = "year"|"month"|"date"|"hour"|"minute"|"second"|"millisecond";
 export const LOCALE_FORMATS = {
@@ -106,7 +112,7 @@ export class Mdate {
   }
   toDate(){ return new Date(this.time); }
   toString(){ return this.toDate().toString(); }
-  toIsoString(){ return this.toDate().toISOString(); }
+  toIsoString(){ return this.toDate().toISOString() as IsoStringType; }
   static now(...args:any[]):Mdate{
     if(args.length > 0) throw new InternalServerError("Mdate.now cannot accept arguments.");
     return new Mdate(Date.now());
@@ -151,6 +157,7 @@ export class MdateTz extends Mdate {
   toJson(){
     return { cls:"MdateTz", time:this.unix, tz:this.tz, locale:this.locale, firstDayOfWeek:this.firstDayOfWeek };
   };
+  toIsoString(){ return this.format("YYYY-MM-DDTHH:mm:ssZ") as IsoStringType; }
   static fromJson({
     cls,
     time,
@@ -314,13 +321,13 @@ export class MdateTz extends Mdate {
   private forkAddMilliSecond = (ms:number) => this.forkSetMilliSecond(this.getMilliSeconds() + ms);
 
   private getTzString(colon:boolean){
-    let tzStr = "";
-    tzStr += (this.tz >= 0) ? "+" : "-";
+    const sign = this.tz >= 0 ? "+" : "-";
     const tzTmp = Math.abs(this.tz);
-    tzStr += _zeroFill(Math.floor(tzTmp), 2);
-    if(colon) tzStr += ":";
-    tzStr += _zeroFill((tzTmp - Math.floor(tzTmp)) * 60, 2);
-    return tzStr;
+    const hours = Math.floor(tzTmp);
+    const minutes = Math.floor((tzTmp - hours) * 60);
+    const hh = _zeroFill(hours, 2);
+    const mm = _zeroFill(minutes, 2);
+    return colon ? `${sign}${hh}:${mm}` : `${sign}${hh}${mm}`;
   }
   private getAmpm(upperOrLower:"upper"|"lower"){
     if(this.locale == null) throw new Error("set locale.");
