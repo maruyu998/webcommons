@@ -33,7 +33,7 @@ export default function DatePicker({
   const [currentYear, setCurrentYear] = useState<number>(tempDate.getFullYear());
   const [tempHours, setTempHours] = useState<number>(tempDate.getHours());
   const [tempMinutes, setTempMinutes] = useState<number>(tempDate.getMinutes());
-  
+
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [popupStyles, setPopupStyles] = useState<React.CSSProperties>({visibility:"hidden"});
   const inputRef = useRef<HTMLInputElement|null>(null);
@@ -71,7 +71,7 @@ export default function DatePicker({
   function handlePrevYear(){
     setCurrentYear(currentYear - 1);
   }
-  
+
   function handleDateSelect(day: number, monthOffset: number = 0){
     const newDate = new Date(currentYear, currentMonth + monthOffset, day);
     if((minDate&&isBefore(newDate,minDate))||(maxDate&&isAfter(newDate,maxDate))) return;
@@ -253,7 +253,7 @@ export default function DatePicker({
               </div>
               <div className="grid grid-cols-7 place-items-center gap-1">{renderDays()}</div>
             </div>
-            { enableTime && 
+            { enableTime &&
               <div className="w-20 h-full pt-12">
                 <div className="flex flex-row justify-between items-center ml-4 h-full">
                   <div className="flex flex-col items-center h-full">
