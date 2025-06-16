@@ -55,7 +55,7 @@ type SessionEncoder<T> = {(param:T):any};
 type SessionDecoder<T> = {(param:any):T};
 export function useStateSession<T>(
   endpoint:string,
-  key:string, 
+  key:string,
   defaultValue:T,
   encoder?:SessionEncoder<T>,
   decoder?:SessionDecoder<T>,

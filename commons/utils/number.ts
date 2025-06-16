@@ -1,8 +1,8 @@
 function* rangeBetween(start:number, end:number){
-    for(let i=start; i<end; i++) yield i;
-    return null;
-  }
-  
+  for(let i=start; i<end; i++) yield i;
+  return null;
+}
+
 function* rangeTo(end:number){
   for(let i=0; i<end; i++) yield i;
   return null;

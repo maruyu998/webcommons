@@ -250,8 +250,8 @@ export async function refreshUserInfo(request:express.Request, response:express.
 }
 ////////////////////////////////// [ M I D D L E W A R E S ] //////////////////////////////////
 export async function redirectIfNotSignedIn(request:express.Request, response:express.Response, next:express.NextFunction):Promise<void>{
-  const currentUser = await getUserInfo(request);
-  if(currentUser == null) return redirectToSignin(request, response);
+  const userInfo = await getUserInfo(request);
+  if(userInfo == null) return redirectToSignin(request, response);
   next();
 }
 
