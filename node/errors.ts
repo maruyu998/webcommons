@@ -14,75 +14,22 @@ export abstract class CustomError extends Error {
   }
 }
 
-export class InternalServerError extends CustomError {
-  constructor(message:string){
-    super({
-      name: "InternalServerError",
-      message,
-      secret: true,
-      errorcode: 500,
-    });
-  }
-}
+/// 4xx Client Errors
 
+/// 400 Bad Request
 export class InvalidParamError extends CustomError {
   constructor(paramName:string, errorType:"missing"|"invalidType"|"invalidValue"){
     if(errorType == "missing"){
-      super({name: "InvalidParamError", message: `Required param '${paramName}' is empty.`})
+      super({name: "InvalidParamError", message: `Required param '${paramName}' is empty.`, errorcode: 400})
     }else if(errorType == "invalidType"){
-      super({name: "InvalidParamError", message:`Required param '${paramName}' is invalid type.`});
+      super({name: "InvalidParamError", message:`Required param '${paramName}' is invalid type.`, errorcode: 400});
     }else if(errorType == "invalidValue"){
-      super({name: "InvalidParamError", message: `Required param '${paramName}' is invalid value.`});
+      super({name: "InvalidParamError", message: `Required param '${paramName}' is invalid value.`, errorcode: 400});
     }else{
       throw new UnexpectedError("errorType is required");
     }
   }
 }
-
-export class OperationNotAllowedError extends CustomError {
-  constructor(message: string){
-    super({
-      name: "OperationNotAllowedError",
-      message,
-      errorcode: 403,
-      secret: false
-    });
-  }
-}
-
-export class AuthenticationError extends CustomError {
-  constructor(message: string){
-    super({
-      name: "AuthenticationError",
-      message,
-      errorcode: 401,
-      secret: false
-    });
-  }
-}
-
-export class PermissionError extends CustomError {
-  constructor(message: string){
-    super({
-      name: "PermissionError",
-      message,
-      errorcode: 403,
-      secret: false
-    });
-  }
-}
-
-export class UnexpectedError extends CustomError {
-  constructor(message: string) {
-    super({
-      name: "UnexpectedError",
-      message,
-      errorcode: 500,
-      secret: true
-    });
-  }
-}
-
 export class UnsupportedError extends CustomError {
   constructor(message: string){
     super({
@@ -93,7 +40,66 @@ export class UnsupportedError extends CustomError {
     });
   }
 }
+/// 401 Unauthorized
+export class AuthenticationError extends CustomError {
+  constructor(message: string){
+    super({
+      name: "AuthenticationError",
+      message,
+      errorcode: 401,
+      secret: false
+    });
+  }
+}
+/// 402 Payment Required
+/// 403 Forbidden
+export class OperationNotAllowedError extends CustomError {
+  constructor(message: string){
+    super({
+      name: "OperationNotAllowedError",
+      message,
+      errorcode: 403,
+      secret: false
+    });
+  }
+}
+export class PermissionError extends CustomError {
+  constructor(message: string){
+    super({
+      name: "PermissionError",
+      message,
+      errorcode: 403,
+      secret: false
+    });
+  }
+}
+/// 404 Not Found
+export class DataNotFoundError extends CustomError {
+  constructor(objectName: string) {
+    super({
+      name: "DataNotFoundError",
+      message: `${objectName} is not found`,
+      errorcode: 404,
+      secret: false
+    });
+  }
+}
+/// 409 Conflict
+/// 421 Misdirected Request
+/// 422 Unprocessable Content
+export class InputFormatError extends CustomError {
+  constructor(message: string){
+    super({ name: "InputFormatError", message, errorcode: 422 })
+  }
+}
 
+/// 5xx Server Errors
+/// 500 Internal Server Error
+export class InternalServerError extends CustomError {
+  constructor(message:string){
+    super({ name: "InternalServerError", message, secret: true, errorcode: 500 });
+  }
+}
 export class ConfigError extends CustomError {
   constructor(message: string) {
     super({
@@ -104,14 +110,16 @@ export class ConfigError extends CustomError {
     });
   }
 }
+/// 501 Not Implemented
 
-export class DataNotFoundError extends CustomError {
-  constructor(objectName: string) {
-    super({
-      name: "DataNotFoundError",
-      message: `${objectName} is not found`,
-      errorcode: 404,
-      secret: false
-    });
+/// 502 Bad Gateway
+/// 503 Service Unavailable
+/// 504 Gateway Timeout
+/// 505 HTTP Version Not Supported
+/// 508 Loop Detected
+/// 520 Web Server is Returning an unknown error
+export class UnexpectedError extends CustomError {
+  constructor(message: string) {
+    super({ name: "UnexpectedError", message, errorcode: 500, secret: true });
   }
 }
