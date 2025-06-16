@@ -1,9 +1,11 @@
 import express from "express";
 import { getIpAddress, sendError } from "./express";
-import { InvalidParamError, AuthenticationError } from "./errors";
+import { InvalidParamError, AuthenticationError, InputFormatError } from "./errors";
 import { AccessInfoType, getUserInfo, UserInfoType } from "./oauth";
 import { getInfoFromApiKey, PermissionType } from "./apiauth";
 import { z } from "zod";
+import { deserializePacket } from "../commons/utils/packet";
+import { PacketSchema } from "../commons/types/packet";
 
 export async function parseStats(
   request:express.Request,
@@ -15,6 +17,8 @@ export async function parseStats(
     url: request.originalUrl,
     method: request.method,
   };
+  response.locals.query = request.query;
+  response.locals.body = request.body;
   next();
 }
 
@@ -55,9 +59,29 @@ export function requireApiKey(...requiredPermissionList:PermissionType[]){
   }
 }
 
+export function deserializePacketInQuery(request:express.Request, response:express.Response, next:express.NextFunction){
+  const { success, error, data: serializedPacket } = PacketSchema.safeParse(JSON.parse(response.locals.query.packet));
+  if(!success){
+    console.error(error);
+    return sendError(response, new InputFormatError("query.packet is not serializedPacket type."))
+  }
+  response.locals.query = deserializePacket(serializedPacket).data;
+  next();
+}
+
+export function deserializePacketInBody(request:express.Request, response:express.Response, next:express.NextFunction){
+  const { success, error, data: serializedPacket } = PacketSchema.safeParse(response.locals.body);
+  if(!success){
+    console.error(error);
+    return sendError(response, new InputFormatError("body is not serializedPacket type."))
+  }
+  response.locals.body = deserializePacket(serializedPacket);
+  next();
+}
+
 export function requireQueryZod<T>(zodSchema:z.ZodType<T, any, any>){
   return ( request: express.Request, response: express.Response, next: express.NextFunction ) => {
-    const { success, error, data } = zodSchema.safeParse(request.query);
+    const { success, error, data } = zodSchema.safeParse(response.locals.query);
     if(!success){
       console.error(error);
       // for (const issue of result.error.errors) {
@@ -68,14 +92,15 @@ export function requireQueryZod<T>(zodSchema:z.ZodType<T, any, any>){
       const params = error.errors.map(e => e.path[0]);
       return sendError(response, new InvalidParamError(params.join(','), "invalidType"));
     }
-    response.locals.zodQuery = {...(response.locals.zodQuery || {}), ...data};
+    // response.locals.zodQuery = {...(response.locals.zodQuery || {}), ...data};
+    response.locals.query = data;
     next();
   }
 }
 
 export function requireBodyZod<T>(zodSchema:z.ZodType<T, any, any>){
   return ( request: express.Request, response: express.Response, next: express.NextFunction ) => {
-    const { success, error, data } = zodSchema.safeParse(request.body);  
+    const { success, error, data } = zodSchema.safeParse(response.locals.body);  
     if(!success){
       console.error(error);
       // for (const issue of result.error.errors) {
@@ -86,7 +111,8 @@ export function requireBodyZod<T>(zodSchema:z.ZodType<T, any, any>){
       const params = error.errors.map(e => e.path[0]);
       return sendError(response, new InvalidParamError(params.join(','), "invalidType"));
     }
-    response.locals.zodBody = {...(response.locals.zodBody || {}), ...data};
+    // response.locals.zodBody = {...(response.locals.zodBody || {}), ...data};
+    response.locals.body = data;
     next();
   };
 }

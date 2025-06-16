@@ -1,9 +1,9 @@
-import { Locale, Mdate, MdateTz } from "./mdate";
-import { PacketSourceDataType, PacketConvertedData, Packet, DecomposedPacket } from "../types/packet";
+import { Mdate, MdateTz } from "./mdate";
+import { PacketDataType, PacketSerializedDataType, PacketSerializedType, PacketType } from "../types/packet";
 import { isBoolean, isNumber, isString, isDate, isArray, isObject, isMdate, isMdateTz } from "./types";
 import { objectMapAssign } from "./object";
 
-export function convertPacket({
+export function serializePacket({
   title,
   message,
   error,
@@ -13,10 +13,10 @@ export function convertPacket({
   title: string
   message: string
   error?: Error
-  data?: PacketSourceDataType,
+  data?: PacketDataType,
   developMode?: boolean
-}):Packet{
-  function convert(data?:PacketSourceDataType):PacketConvertedData{
+}):PacketSerializedType{
+  function serialize(data?:PacketDataType):PacketSerializedDataType{
     if(data === undefined) return { type:"undefined", data:undefined };
     if(data === null) return { type:"null", data: null };
     if(isString(data)) return { type:"string", data};
@@ -25,25 +25,26 @@ export function convertPacket({
     if(isDate(data)) return { type:"date", data: data.getTime() };
     if(isMdateTz(data)) return { type:"mdateTz", data: data.toJson() };
     if(isMdate(data)) return { type:"mdate", data: data.toJson() };
-    if(isArray(data)) return { type:"array", data: data.map(o=>convert(o)) };
+    if(isArray(data)) return { type:"array", data: data.map(o=>serialize(o)) };
     if(isObject(data)) return { type:"object",
-      data: objectMapAssign(data, ([k,v])=>({[k]:convert(v as PacketSourceDataType)})) as {[key:string]:PacketConvertedData}
+      data: objectMapAssign(data, ([k,v])=>({[k]:serialize(v as PacketDataType)})) as {[key:string]:PacketSerializedDataType}
     };
     /* eslint-disable-next-line */
     console.error({data}, typeof data);
     throw new Error("not implemented in packet conditions");
   }
-  const errorConverted = error ? {
+  const errorSerialized = error ? {
     name: error.name,
     message: error.message,
     stack: developMode ? error.stack : undefined,
     cause: developMode ? error.cause : undefined
   } : undefined;
-  return { title, message, error: errorConverted, convertedData: convert(data)};
+  const packetSerialized = { title, message, error: errorSerialized, data: serialize(data)};
+  return packetSerialized;
 }
 
-export function deconvertPacket(packet:Packet): DecomposedPacket{
-  function deconvert(cdata:PacketConvertedData):PacketSourceDataType{
+export function deserializePacket(packetSerialized:PacketSerializedType):PacketType{
+  function deserialize(cdata:PacketSerializedDataType):PacketDataType{
     if(!isObject(cdata)) {
       console.error("packet:", packet);
       throw new Error("packet parcing error");
@@ -54,23 +55,23 @@ export function deconvertPacket(packet:Packet): DecomposedPacket{
     if(cdata.type === "date") return new Date(cdata.data as number);
     if(cdata.type === "mdateTz") return MdateTz.fromJson(cdata.data as {cls:string, time:number, tz:number});
     if(cdata.type === "mdate") return Mdate.fromJson(cdata.data as {cls:string, time:number});
-    if(cdata.type === "array") return (cdata.data as PacketConvertedData[]).map(o=>deconvert(o));
+    if(cdata.type === "array") return (cdata.data as PacketSerializedDataType[]).map(o=>deserialize(o));
     if(cdata.type === "object") return Object.assign({},
-      ...Object.entries(cdata.data as {[key:string]:PacketConvertedData}).map(([k,v])=>({[k]:deconvert(v)}))
-    ) as {[key:string]:PacketSourceDataType};
+      ...Object.entries(cdata.data as {[key:string]:PacketSerializedDataType}).map(([k,v])=>({[k]:deserialize(v)}))
+    ) as {[key:string]:PacketSerializedDataType};
     if(cdata.type === "undefined") return undefined;
     if(cdata.type === "null") return null;
     console.error(cdata, typeof cdata.data);
     throw new Error("not implemented in packet conditions");
   }
-  const { title, message, error, convertedData } = packet;
-  const retObject:DecomposedPacket = { title, message };
-  if(convertedData !== undefined) retObject.data = deconvert(convertedData);
-  if(error){
-    const errorDeconverted = new Error(error.message, { cause: error.cause });
-    errorDeconverted.name = error.name;
-    errorDeconverted.stack = error.stack;
-    retObject.error = errorDeconverted;
+  const { title, message } = packetSerialized;
+  const packet:PacketType = { title, message };
+  if(packetSerialized.data !== undefined) packet.data = deserialize(packetSerialized.data);
+  if(packetSerialized.error){
+    const error = new Error(packetSerialized.error.message, { cause: packetSerialized.error.cause });
+    error.name = packetSerialized.error.name;
+    error.stack = packetSerialized.error.stack;
+    packet.error = error;
   }
-  return retObject;
+  return packet;
 }

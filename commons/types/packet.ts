@@ -1,28 +1,55 @@
-import { Mdate, MdateTz } from "../utils/mdate";
+import { z } from "zod";
+import { MdateSchema, MdateTzSchema, UnixSchema } from "../utils/mdate";
 
-type BasicSourceTypes = string|number|boolean|Date|Mdate|MdateTz|null|undefined;
-
-export type PacketSourceDataType = BasicSourceTypes
-                                  |{[key:string]:PacketSourceDataType}
-                                  |{[key:string]:PacketSourceDataType[]}
-                                  |PacketSourceDataType[];
-
-type ValueType = string|number|boolean|null|undefined|{cls:string,time:number}|{cls:string,time:number,tz:number}|ValueType[]|PacketConvertedData[]|{[key:string]:PacketConvertedData};
-export type PacketConvertedData = {
-  type: "string"|"number"|"boolean"|"date"|"mdate"|"mdateTz"|"array"|"object"|"null"|"undefined",
-  data: ValueType
-};
-
-export type Packet = {
-  title: string,
-  message: string,
-  error?: Error,
-  convertedData?: PacketConvertedData
-};
-
-export type DecomposedPacket = {
-  title: string,
-  message: string,
-  error?: Error,
-  data?: PacketSourceDataType
-};
+const ValueSchema = z.lazy(()=>z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.undefined(),
+  z.object({
+    cls: z.string(),         // "date" | "mdate" | "mdateTz"
+    time: UnixSchema,        // Unix timestamp
+    tz: z.number().optional() // MdateTzのみ
+  }),
+  z.array(ValueSchema),
+  z.array(PacketSerializedDataSchema),
+  z.record(PacketSerializedDataSchema)
+]));
+export const PacketSerializedDataSchema = z.object({
+  type: z.enum([
+    "string", "number", "boolean", "date", "mdate", "mdateTz",
+    "array", "object", "null", "undefined"
+  ]),
+  data: ValueSchema
+});
+export type PacketSerializedDataType = z.infer<typeof PacketSerializedDataSchema>;
+export const PacketDataSchema = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.date(),
+    MdateSchema,
+    MdateTzSchema,
+    z.null(),
+    z.undefined(),
+    z.array(PacketDataSchema),
+    z.record(PacketDataSchema)
+  ])
+);
+export type PacketDataType = z.infer<typeof PacketDataSchema>;
+export const PacketSerializedSchema = z.object({
+  title: z.string(),
+  message: z.string(),
+  error: z.instanceof(Error).optional(),
+  data: PacketSerializedDataSchema.optional()
+});
+export type PacketSerializedType = z.infer<typeof PacketSerializedSchema>;
+export const PacketSchema = z.object({
+  title: z.string(),
+  message: z.string(),
+  error: z.instanceof(Error).optional(),
+  data: PacketDataSchema.optional()
+})
+export type PacketType = z.infer<typeof PacketSchema>;

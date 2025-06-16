@@ -1,5 +1,5 @@
-import { deconvertPacket } from "./packet";
-import { Packet, DecomposedPacket } from "../types/packet";
+import { serializePacket, deserializePacket } from "./packet";
+import { PacketType, PacketSerializedType, PacketDataType } from "../types/packet";
 import { z } from "zod";
 
 export const userAgentExample = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36";
@@ -8,7 +8,7 @@ async function processFetch<T extends z.ZodRawShape>(
   fetchPromise:Promise<Response>,
   windowForRedirect?:Window&typeof globalThis,
   zodSchema?: z.ZodObject<T>,
-):Promise<DecomposedPacket|{title:string,message:string,data:T}>{
+):Promise<PacketType|{title:string,message:string,data:T}>{
   return await fetchPromise
     .then(res=>{
       if(windowForRedirect === undefined) return res;
@@ -27,7 +27,7 @@ async function processFetch<T extends z.ZodRawShape>(
         throw new Error(`Response is not JSON`);
       }
     })
-    .then((packet:Packet)=>deconvertPacket(packet))
+    .then((packet:PacketSerializedType)=>deserializePacket(packet))
     .then(({title, message, data, error})=>{
       if(error) throw error;
       if(zodSchema == undefined) return { title, message, data };
@@ -69,11 +69,15 @@ function createHeaderForm(option:OptionType){
 }
 
 export function getPacket<T extends z.ZodRawShape>(
-  url: string,
+  url: URL,
+  queryData?: PacketDataType,
   option: OptionType={},
   zodSchema?: z.ZodObject<T>,
   windowForRedirect?: Window & typeof globalThis,
 ){
+  if(queryData){
+    url.searchParams.append("packet", JSON.stringify(serializePacket({title:"", message:"", data:queryData})))
+  }
   const fetchPromise = fetch(url, {
     method: "GET",
     headers: createHeader(option)
@@ -82,8 +86,8 @@ export function getPacket<T extends z.ZodRawShape>(
 }
 
 export function postPacket<T extends z.ZodRawShape>(
-  url: string,
-  object: object,
+  url: URL|string,
+  data: PacketDataType,
   option: OptionType={},
   zodSchema?: z.ZodObject<T>,
   windowForRedirect?: Window & typeof globalThis,
@@ -91,19 +95,19 @@ export function postPacket<T extends z.ZodRawShape>(
   const fetchPromise = fetch(url, {
     method: "POST",
     headers: createHeader(option),
-    body: JSON.stringify(object)
+    body: JSON.stringify(serializePacket({title:"",message:"",data}))
   });
   return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }
 
 export function postPacketForm(
-  url: string,
-  object: object,
+  url: URL|string,
+  data: object,
   option: OptionType={},
   windowForRedirect?: Window & typeof globalThis
 ){
   const formData = new FormData();
-  for(const [key,value] of Object.entries(object)){
+  for(const [key,value] of Object.entries(data)){
     formData.append(key, value);
   }
   const fetchPromise = fetch(url, {
@@ -115,8 +119,8 @@ export function postPacketForm(
 }
 
 export function putPacket<T extends z.ZodRawShape>(
-  url: string,
-  object: object,
+  url: URL|string,
+  data: PacketDataType,
   option: OptionType={},
   zodSchema?: z.ZodObject<T>,
   windowForRedirect?: Window & typeof globalThis,
@@ -124,14 +128,14 @@ export function putPacket<T extends z.ZodRawShape>(
   const fetchPromise = fetch(url, {
     method: "PUT",
     headers: createHeader(option),
-    body: JSON.stringify(object)
+    body: JSON.stringify(serializePacket({title:"",message:"",data}))
   });
   return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }
 
 export function deletePacket<T extends z.ZodRawShape>(
-  url: string,
-  object: object,
+  url: URL|string,
+  data: PacketDataType,
   option: OptionType={},
   zodSchema?: z.ZodObject<T>,
   windowForRedirect?: Window & typeof globalThis,
@@ -139,7 +143,7 @@ export function deletePacket<T extends z.ZodRawShape>(
   const fetchPromise = fetch(url, {
     method: "DELETE",
     headers: createHeader(option),
-    body: JSON.stringify(object)
+    body: JSON.stringify(serializePacket({title:"",message:"",data}))
   });
   return processFetch(fetchPromise, windowForRedirect, zodSchema);
 }

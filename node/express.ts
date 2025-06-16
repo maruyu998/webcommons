@@ -1,5 +1,5 @@
 import express from "express";
-import { convertPacket } from "../commons/utils/packet";
+import { serializePacket } from "../commons/utils/packet";
 import { MdateTz, TIME_ZONES, TimeZone } from "../commons/utils/mdate";
 import env from "./env";
 import { z } from "zod";
@@ -62,7 +62,7 @@ export function sendMessage(response:express.Response, title:string, message:str
   if(verbose){
     console.info(generateLogText(response, title, message));
   }
-  response.json(convertPacket({title, message}));
+  response.status(204).json(serializePacket({title, message}));
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -71,7 +71,7 @@ export function sendData(response:express.Response, title:string, message:string
     console.info(generateLogText(response, title, message));
   }
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
-  response.json(convertPacket({title, message, data}));
+  response.status(200).json(serializePacket({title, message, data}));
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -85,7 +85,7 @@ export function sendError(response:express.Response, error:Error, data?:any):voi
   const title = error.name;
   const message = error.message;
   const statusCode = error instanceof CustomError ? error.errorcode : 500;
-  response.status(statusCode).json(convertPacket({title, message, error, data}));
+  response.status(statusCode).json(serializePacket({title, message, error, data}));
 }
 
 export function getIpAddress(request:express.Request):string|null{

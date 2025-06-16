@@ -8,7 +8,7 @@ import pkceChallenge from "pkce-challenge";
 import { saveSession, regenerateSession, sendError } from "./express";
 import { getPacket } from "../commons/utils/fetch";
 import { AuthenticationError, InvalidParamError, PermissionError } from "./errors";
-import { PacketSourceDataType } from "../commons/types/packet";
+import { PacketDataType } from "../commons/types/packet";
 import { UserIdType, UserNameType } from "../commons/types/user";
 import { PermissionType } from "./apiauth";
 
@@ -161,8 +161,8 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   const accessToken = await getAccessToken(request).catch(()=>null);
   if(accessToken == null) return null;
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_DOMAIN);
-  const fetchReturn = await getPacket(url.toString(), { accessToken })
-                      .then(({data})=>data as PacketSourceDataType)
+  const fetchReturn = await getPacket(url, { accessToken })
+                      .then(({data})=>data as PacketDataType)
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn == null) return null;
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
