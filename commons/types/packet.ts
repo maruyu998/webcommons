@@ -43,13 +43,15 @@ export const PacketSerializedSchema = z.object({
   title: z.string(),
   message: z.string(),
   error: z.instanceof(Error).optional(),
-  data: PacketSerializedDataSchema.optional()
+  data: PacketSerializedDataSchema.optional(),
+  version: z.number().optional()
 });
 export type PacketSerializedType = z.infer<typeof PacketSerializedSchema>;
 export const PacketSchema = z.object({
   title: z.string(),
   message: z.string(),
   error: z.instanceof(Error).optional(),
-  data: PacketDataSchema.optional()
+  data: PacketDataSchema.optional(),
+  version: z.number().optional()
 })
 export type PacketType = z.infer<typeof PacketSchema>;

@@ -6,14 +6,14 @@ export const userAgentExample = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple
 
 async function processFetch<T extends z.ZodRawShape>(
   fetchPromise:Promise<Response>,
-  windowForRedirect?:Window&typeof globalThis,
-  zodSchema?: z.ZodObject<T>,
-):Promise<PacketType|{title:string,message:string,data:T}>{
+  window?:Window&typeof globalThis,
+  responseSchema?: z.ZodObject<T>,
+):Promise<PacketType|{title:string,message:string,data:z.infer<z.ZodObject<T>>}>{
   return await fetchPromise
     .then(res=>{
-      if(windowForRedirect === undefined) return res;
+      if(window === undefined) return res;
       if(!res.redirected) return res;
-      windowForRedirect.location.href = res.url;
+      window.location.href = res.url;
       throw new Error("Redirect");
     })
     .then(res=>{
@@ -26,12 +26,13 @@ async function processFetch<T extends z.ZodRawShape>(
         console.error("JSON Parse Error", error.message);
         throw new Error(`Response is not JSON`);
       }
+      throw error;
     })
     .then((packet:PacketSerializedType)=>deserializePacket(packet))
     .then(({title, message, data, error})=>{
       if(error) throw error;
-      if(zodSchema == undefined) return { title, message, data };
-      const { success, error: zodError, data:zodData } = zodSchema.safeParse(data);
+      if(responseSchema == undefined) return { title, message, data };
+      const { success, error: zodError, data:zodData } = responseSchema.safeParse(data);
       if(!success){
         console.error(zodError.format());
         throw zodError;
@@ -68,82 +69,138 @@ function createHeaderForm(option:OptionType){
   };
 }
 
-export function getPacket<T extends z.ZodRawShape>(
-  url: URL,
-  queryData?: PacketDataType,
-  option: OptionType={},
-  zodSchema?: z.ZodObject<T>,
-  windowForRedirect?: Window & typeof globalThis,
-){
+interface PacketRequestArgs<
+  TQuerySchema extends z.ZodTypeAny = z.ZodUndefined,
+  TBodySchema extends z.ZodTypeAny = z.ZodUndefined,
+  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+>{
+  url: URL;
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  querySchema?: TQuerySchema;
+  bodySchema?: TBodySchema;
+  responseSchema?: TResponseSchema;
+  queryData?: z.infer<TQuerySchema>;
+  bodyData?: z.infer<TBodySchema>;
+  window?: Window & typeof globalThis;
+  option?: OptionType;
+}
+
+interface PacketRequestFormArgs<T extends z.ZodRawShape = z.ZodRawShape>{
+  url: URL;
+  method?: "POST"|"PUT"|"PATCH"|"DELETE";
+  formData: Record<string, string|Blob|File>;
+  responseSchema?: z.AnyZodObject;
+  window?: Window & typeof globalThis;
+  option?: OptionType;
+}
+
+function packetRequest<
+  TQuerySchema extends z.ZodTypeAny,
+  TBodySchema extends z.ZodTypeAny,
+  TResponseSchema extends z.ZodObject<any>
+>({
+  url,
+  method,
+  queryData,
+  querySchema,
+  bodyData,
+  bodySchema,
+  responseSchema,
+  window,
+  option = {},
+}:PacketRequestArgs<TQuerySchema,TBodySchema,TResponseSchema>){
+  if(method == "GET" && (bodyData || bodySchema)) throw Error("GET method cannot have body data or schema.");
+  const _url = typeof url === "string" ? new URL(url) : url;
   if(queryData){
-    url.searchParams.append("packet", JSON.stringify(serializePacket({title:"", message:"", data:queryData})))
+    if(querySchema){
+      const parsed = querySchema.safeParse(queryData);
+      if(!parsed.success) throw parsed.error;
+    }
+    const queryPacket = serializePacket({ title: "", message: "", data: queryData });
+    _url.searchParams.append("packet", JSON.stringify(queryPacket));
   }
-  const fetchPromise = fetch(url, {
-    method: "GET",
-    headers: createHeader(option)
-  });
-  return processFetch(fetchPromise, windowForRedirect, zodSchema);
-}
-
-export function postPacket<T extends z.ZodRawShape>(
-  url: URL|string,
-  data: PacketDataType,
-  option: OptionType={},
-  zodSchema?: z.ZodObject<T>,
-  windowForRedirect?: Window & typeof globalThis,
-){
-  const fetchPromise = fetch(url, {
-    method: "POST",
-    headers: createHeader(option),
-    body: JSON.stringify(serializePacket({title:"",message:"",data}))
-  });
-  return processFetch(fetchPromise, windowForRedirect, zodSchema);
-}
-
-export function postPacketForm(
-  url: URL|string,
-  data: object,
-  option: OptionType={},
-  windowForRedirect?: Window & typeof globalThis
-){
-  const formData = new FormData();
-  for(const [key,value] of Object.entries(data)){
-    formData.append(key, value);
+  let body: BodyInit | undefined = undefined;
+  if(method !== "GET" && bodyData){
+    if(bodySchema){
+      const parsed = bodySchema.safeParse(bodyData);
+      if(!parsed.success) throw parsed.error;
+    }
+    body = JSON.stringify(serializePacket({ title: "", message: "", data: bodyData }));
   }
-  const fetchPromise = fetch(url, {
-    method: "POST",
-    headers: createHeaderForm(option),
-    body: formData
-  });
-  return processFetch(fetchPromise, windowForRedirect);
+  const headers = createHeader(option);
+  const fetchPromise = fetch(_url.toString(), { method, headers, body });
+  return processFetch(fetchPromise, window, responseSchema);
 }
 
-export function putPacket<T extends z.ZodRawShape>(
-  url: URL|string,
-  data: PacketDataType,
-  option: OptionType={},
-  zodSchema?: z.ZodObject<T>,
-  windowForRedirect?: Window & typeof globalThis,
-){
-  const fetchPromise = fetch(url, {
-    method: "PUT",
-    headers: createHeader(option),
-    body: JSON.stringify(serializePacket({title:"",message:"",data}))
-  });
-  return processFetch(fetchPromise, windowForRedirect, zodSchema);
+export async function getPacket<
+  TQuerySchema extends z.ZodTypeAny,
+  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+>(args: Omit<PacketRequestArgs<TQuerySchema,z.ZodUndefined,TResponseSchema>,"method"|"bodyData"|"bodySchema">){
+  return await packetRequest({ ...args, method: "GET" });
+}
+export async function postPacket<
+  TQuerySchema extends z.ZodTypeAny,
+  TBodySchema extends z.ZodTypeAny,
+  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+  return await packetRequest({ ...args, method: "POST" });
+}
+export async function patchPacket<
+  TQuerySchema extends z.ZodTypeAny,
+  TBodySchema extends z.ZodTypeAny,
+  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+  return await packetRequest({ ...args, method: "PATCH" });
+}
+export async function putPacket<
+  TQuerySchema extends z.ZodTypeAny,
+  TBodySchema extends z.ZodTypeAny,
+  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+  return await packetRequest({ ...args, method: "PUT" });
+}
+export async function deletePacket<
+  TQuerySchema extends z.ZodTypeAny,
+  TBodySchema extends z.ZodTypeAny,
+  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+  return await packetRequest({ ...args, method: "DELETE" });
 }
 
-export function deletePacket<T extends z.ZodRawShape>(
-  url: URL|string,
-  data: PacketDataType,
-  option: OptionType={},
-  zodSchema?: z.ZodObject<T>,
-  windowForRedirect?: Window & typeof globalThis,
+function packetFormRequest<T extends z.ZodRawShape>({
+  url,
+  method,
+  formData,
+  responseSchema,
+  window,
+  option = {},
+}: PacketRequestFormArgs<T>) {
+  const _url = typeof url === "string" ? new URL(url) : url;
+  const body = new FormData();
+  for(const [key,value] of Object.entries(formData)){
+    body.append(key, value);
+  }
+  const headers = createHeaderForm(option);
+  const fetchPromise = fetch(_url.toString(), { method, headers, body });
+  return processFetch(fetchPromise, window, responseSchema);
+}
+export async function postFormPacket<T extends z.ZodRawShape>(
+  args: Omit<PacketRequestFormArgs<T>, "method">
 ){
-  const fetchPromise = fetch(url, {
-    method: "DELETE",
-    headers: createHeader(option),
-    body: JSON.stringify(serializePacket({title:"",message:"",data}))
-  });
-  return processFetch(fetchPromise, windowForRedirect, zodSchema);
+  return await packetFormRequest({ ...args, method: "POST" });
+}
+export async function patchFormPacket<T extends z.ZodRawShape>(
+  args: Omit<PacketRequestFormArgs<T>, "method">
+){
+  return await packetFormRequest({ ...args, method: "PATCH" });
+}
+export async function putFormPacket<T extends z.ZodRawShape>(
+  args: Omit<PacketRequestFormArgs<T>, "method">
+){
+  return await packetFormRequest({ ...args, method: "PUT" });
+}
+export async function deleteFormPacket<T extends z.ZodRawShape>(
+  args: Omit<PacketRequestFormArgs<T>, "method">
+){
+  return await packetFormRequest({ ...args, method: "DELETE" });
 }
