@@ -1,8 +1,10 @@
 import express from "express";
 import { getIpAddress, sendError } from "./express";
 import { InvalidParamError, AuthenticationError, InputFormatError } from "./errors";
-import { AccessInfoType, getUserInfo, UserInfoType } from "./oauth";
-import { getInfoFromApiKey, PermissionType } from "./apiauth";
+import { AccessInfoType, UserInfoType } from "./types/oauth";
+import { getUserInfo } from "./utils/oauth";
+import { PermissionType } from "./types/apiauth";
+import { getInfoFromApiKey } from "./utils/apiauth";
 import { z } from "zod";
 import { deserializePacket } from "../commons/utils/packet";
 import { PacketSchema } from "../commons/types/packet";
@@ -55,6 +57,9 @@ export function requireApiKey(...requiredPermissionList:PermissionType[]){
       }
       response.locals.accessInfo = { userId, permissionList } as AccessInfoType;
       next();
+    }).catch(error => {
+      console.error('API Key validation error:', error);
+      return sendError(response, new AuthenticationError("Authentication service is unavailable"));
     });
   }
 }
@@ -79,7 +84,7 @@ export function deserializePacketInBody(request:express.Request, response:expres
   next();
 }
 
-export function requireQueryZod<T>(zodSchema:z.ZodType<T, any, any>){
+export function requireQueryZod<Schema extends z.ZodTypeAny>(zodSchema:Schema){
   return ( request: express.Request, response: express.Response, next: express.NextFunction ) => {
     const { success, error, data } = zodSchema.safeParse(response.locals.query);
     if(!success){
@@ -98,7 +103,7 @@ export function requireQueryZod<T>(zodSchema:z.ZodType<T, any, any>){
   }
 }
 
-export function requireBodyZod<T>(zodSchema:z.ZodType<T, any, any>){
+export function requireBodyZod<Schema extends z.ZodTypeAny>(zodSchema:Schema){
   return ( request: express.Request, response: express.Response, next: express.NextFunction ) => {
     const { success, error, data } = zodSchema.safeParse(response.locals.body);  
     if(!success){

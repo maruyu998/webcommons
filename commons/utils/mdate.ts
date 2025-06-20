@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { InternalServerError } from "../../node/errors";
 import { DAY, HOUR, MINUTE } from "./time";
-import { isNumber } from "./types";
 
 export function isYYYYMMDD(str:string):boolean{
   if(str.length !== "YYYY-MM-DD".length) return false;
@@ -65,7 +63,7 @@ export const LOCALE_FORMATS = {
       short: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
     },
     dayOfWeek: {
-      long: ["Sunday", "Monday", "Tueday", "Wedday", "Thuday", "Friday", "Satday"],
+      long: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
       medium: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
       short: ["S", "M", "T", "W", "T", "F", "S"]
     }
@@ -74,12 +72,21 @@ export const LOCALE_FORMATS = {
 type TypeOfLocaleFormat = typeof LOCALE_FORMATS;
 export type Locale = keyof TypeOfLocaleFormat;
 
-function _replace(str:string, regex:RegExp, func:()=>string){
-  if(regex.test(str)) str = str.replace(regex, func());
+// Memoized regex cache for performance
+const regexCache = new Map<string, RegExp>();
+function getCachedRegex(pattern: string): RegExp {
+  if (!regexCache.has(pattern)) {
+    regexCache.set(pattern, new RegExp(pattern));
+  }
+  return regexCache.get(pattern)!;
+}
+
+function _replace(str: string, regex: RegExp, func: () => string): string {
+  if (regex.test(str)) return str.replace(regex, func());
   return str;
 }
-function _zeroFill(num:number, digits:number): string{
-  return `${Array(digits).join("0")}${num}`.slice(-digits);
+function _zeroFill(num: number, digits: number): string {
+  return num.toString().padStart(digits, '0');
 }
 function _getDayOfWeek(locale:Locale, length:"long"|"medium"|"short", index:number):string{
   return LOCALE_FORMATS[locale]["dayOfWeek"][length][index%7];
@@ -87,8 +94,8 @@ function _getDayOfWeek(locale:Locale, length:"long"|"medium"|"short", index:numb
 function _getAmpm(locale:Locale, upperOrLower:"upper"|"lower", ampm:0|1){
   return LOCALE_FORMATS[locale]["ampm"][upperOrLower][ampm];
 }
-function _getLastDayOfMonth(){
-
+function _getLastDayOfMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
 }
 
 export class Mdate {
@@ -114,7 +121,7 @@ export class Mdate {
   toString(){ return this.toDate().toString(); }
   toIsoString(){ return this.toDate().toISOString() as IsoStringType; }
   static now(...args:any[]):Mdate{
-    if(args.length > 0) throw new InternalServerError("Mdate.now cannot accept arguments.");
+    if(args.length > 0) throw new Error("Mdate.now cannot accept arguments.");
     return new Mdate(Date.now());
   }
   clone(){ return new Mdate(this.time); }
@@ -220,7 +227,7 @@ export class MdateTz extends Mdate {
     throw new Error(`[not reachable] target error, target: ${target}`);
   }
   setTz(tz:number|TimeZone):MdateTz{
-    if(isNumber(tz)) this.tz = tz as number;
+    if(typeof tz === "number") this.tz = tz as number;
     else if(tz in TIME_ZONES) this.tz = TIME_ZONES[tz];
     else throw new Error(`timezone is not proper. :${tz}`);
     return this;
@@ -337,10 +344,11 @@ export class MdateTz extends Mdate {
     return _getAmpm(this.locale, upperOrLower, this.getHours() < 12 ? 0 : 1);
   }
 
-  format(format:string, locale?:Locale): string{
+  format(format:string, locale?:Locale, firstDayOfWeek?:number): string{
     let text = format;
     const mdate = this.clone();
-    if(locale) mdate.setLocale(locale);
+    if(locale !== undefined) mdate.setLocale(locale);
+    if(firstDayOfWeek !== undefined) mdate.setFirstDayOfWeek(firstDayOfWeek);
 
     text = _replace(text, /(?<!Y)YYYY(?!Y)/, ()=>mdate.getFullYearStr());
     text = _replace(text, /(?<!M)MM(?!M)/, ()=>mdate.getZeroMonthStr());

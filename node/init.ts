@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import ipaddr from 'ipaddr.js';
-import * as maruyuOAuthClient from "./oauth";
+import { SessionType } from "./types/oauth";
 import { z } from "zod";
 import env, { parseDuration, parseList } from "./env";
 import { parseStats } from "./middleware";
@@ -15,7 +15,7 @@ const MongoDBStore = connectMongoSession(session);
 declare module "express-session" {
   /* eslint-disable-next-line @typescript-eslint/naming-convention*/
   interface SessionData {
-    maruyuOAuth: maruyuOAuthClient.SessionType,
+    maruyuOAuth: SessionType,
     clientData: Record<string, any>
   }
 };
@@ -42,7 +42,7 @@ app.use(rateLimit({
   max: RATE_LIMIT_COUNT,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req, res) => {
+  skip: (req) => {
     const ip = req.ip || '';
     if(!ipaddr.isValid(ip)) return false;
     const addr = ipaddr.parse(ip);
@@ -63,12 +63,13 @@ const STYLE_SOURCES = env.get("STYLE_SOURCES",z.string().transform(parseList));
 const FONT_SOURCES = env.get("FONT_SOURCES",z.string().transform(parseList));
 const FRAME_SOURCES = env.get("FRAME_SOURCES",z.string().transform(parseList));
 
+const isProductionMode = env.get("RUN_MODE", z.enum(['development','production','test']).transform(v=>v==="production"));
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
     directives: {
       "default-src": ["'self'"],
-      "script-src": ["'self'", ...SCRIPT_SOURCES],
+      "script-src": ["'self'", ...SCRIPT_SOURCES, ...(isProductionMode ? [] : ["'unsafe-eval'"])],
       "style-src": ["'self'", "'unsafe-inline'", ...STYLE_SOURCES],
       "img-src": ["'self'", "data:"],
       "font-src": ["'self'", ...FONT_SOURCES],
@@ -90,14 +91,14 @@ app.use(session({
     idField: undefined,
     expiresKey: undefined,
     expiresAfterSeconds: undefined,
-  }),
+  }) as unknown as session.Store,
   resave: false,
   saveUninitialized: false,
   rolling: true,
   cookie: {
     httpOnly: true,
     maxAge: env.get("SESSION_KEEP_DURATION", z.string().nonempty().transform(parseDuration)),
-    secure: true,
+    secure: isProductionMode,
     sameSite: "lax"
   }
 }));

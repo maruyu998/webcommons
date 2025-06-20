@@ -5,7 +5,7 @@ import env from "maruyu-webcommons/node/env";
 import { UnexpectedError } from "./errors";
 import { z } from "zod";
 import { UserIdType } from "../commons/types/user";
-import { UserInfoType } from "./oauth";
+import { UserInfoType } from "./types/oauth";
 
 
 export type PushSubscriptionType = {
@@ -53,8 +53,8 @@ export function register(){
 }
 
 export function sendPublicVapidKey(
-  request:express.Request, 
-  response:express.Response
+  request: express.Request, 
+  response: express.Response
 ){
   const publicVapidKey = env.get("PUBLIC_VAPID_KEY", z.string().nonempty());
   response.send(publicVapidKey);
@@ -112,7 +112,7 @@ export async function getSubscriptioins(userId:string){
 }
 
 export async function sendPush(
-  subscription: webpush.PushSubscription,
+  subscription: Parameters<typeof webpush.sendNotification>[0],
   object: {
     tag?: string,
     title: string,

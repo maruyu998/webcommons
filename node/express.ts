@@ -4,7 +4,7 @@ import { MdateTz, TIME_ZONES, TimeZone } from "../commons/utils/mdate";
 import env from "./env";
 import { z } from "zod";
 import { CustomError, InternalServerError } from "./errors";
-import { AccessInfoType, UserInfoType } from "./oauth";
+import { AccessInfoType, UserInfoType } from "./types/oauth";
 
 const SERVER_TIME_ZONE = env.get("SERVER_TIME_ZONE", z.enum(Object.keys(TIME_ZONES) as [TimeZone, ...TimeZone[]]));
 
