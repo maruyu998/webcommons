@@ -9,8 +9,8 @@ export abstract class CustomError extends Error {
   }){
     super(props.message);
     this.name = props.name;
-    if(props.secret) this.secret = props.secret;
-    if(props.errorcode) this.errorcode = props.errorcode;
+    if(props.secret !== undefined) this.secret = props.secret;
+    if(props.errorcode !== undefined) this.errorcode = props.errorcode;
   }
 }
 
@@ -89,7 +89,12 @@ export class DataNotFoundError extends CustomError {
 /// 422 Unprocessable Content
 export class InputFormatError extends CustomError {
   constructor(message: string){
-    super({ name: "InputFormatError", message, errorcode: 422 })
+    super({ 
+      name: "InputFormatError", 
+      message, 
+      errorcode: 422,
+      secret: false,
+    })
   }
 }
 
@@ -97,7 +102,12 @@ export class InputFormatError extends CustomError {
 /// 500 Internal Server Error
 export class InternalServerError extends CustomError {
   constructor(message:string){
-    super({ name: "InternalServerError", message, secret: true, errorcode: 500 });
+    super({ 
+      name: "InternalServerError", 
+      message, 
+      errorcode: 500,
+      secret: true, 
+    });
   }
 }
 export class ConfigError extends CustomError {
@@ -105,8 +115,8 @@ export class ConfigError extends CustomError {
     super({
       name: "ConfigError",
       message,
+      secret: true,
       errorcode: 500,
-      secret: true
     });
   }
 }
@@ -120,6 +130,11 @@ export class ConfigError extends CustomError {
 /// 520 Web Server is Returning an unknown error
 export class UnexpectedError extends CustomError {
   constructor(message: string) {
-    super({ name: "UnexpectedError", message, errorcode: 500, secret: true });
+    super({ 
+      name: "UnexpectedError", 
+      message, 
+      errorcode: 500,
+      secret: true,
+    });
   }
 }
