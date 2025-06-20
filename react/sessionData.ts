@@ -1,9 +1,9 @@
-import { getPacket, putPacket } from "../commons/utils/fetch";
+import { getPacket, patchPacket } from "../commons/utils/fetch";
 
 export async function saveSessionData(endpoint:string, key:string, data:any){
-  return putPacket(endpoint, { key, data });
+  return patchPacket({url: new URL(endpoint, window.location.href), bodyData:{ key, data }});
 }
 
 export async function getSessionData(endpoint:string, key:string){
-  return getPacket(new URL(`${endpoint}?key=${key}`)).then(({data})=>data);
+  return getPacket({url: new URL(`${endpoint}`), queryData: { key }}).then(({data})=>data);
 }
