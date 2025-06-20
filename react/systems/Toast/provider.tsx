@@ -26,14 +26,15 @@ export function ToastProvider({children}:{children:React.ReactNode}){
   }, [toastList])
 
   useEffect(()=>{
-    function deleteExpiredToasts(){
-      if(toastListRef.current == null) return;
-      if(toastListRef.current.length == 0) return;
-      const updatedList = toastListRef.current.filter(({deleteAt})=>deleteAt.getTime() > Date.now());
-      if(updatedList.length === toastListRef.current.length) return;
-      setToastList(updatedList);
-    }
-    const intervalId = setInterval(deleteExpiredToasts.bind(toastList), 100);
+    const deleteExpiredToasts = () => {
+      if(toastListRef.current.length === 0) return;
+      const now = Date.now();
+      const updatedList = toastListRef.current.filter(({deleteAt}) => deleteAt.getTime() > now);
+      if(updatedList.length !== toastListRef.current.length) {
+        setToastList(updatedList);
+      }
+    };
+    const intervalId = setInterval(deleteExpiredToasts, 1000);
     return ()=>clearInterval(intervalId);
   }, [])
   function addToast(title:string|null, message:string|null, variant:ToastType["variant"], duration:number=5000){
