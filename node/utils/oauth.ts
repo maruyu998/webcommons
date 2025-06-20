@@ -1,41 +1,21 @@
 import { z } from "zod";
-import env, { parseDuration } from "./env";
+import env, { parseDuration } from "../env";
 import express from "express";
 import ClientOAuth2 from "client-oauth2";
 import { randomUUID } from "crypto";
 import cors from "cors";
 import pkceChallenge from "pkce-challenge";
-import { saveSession, regenerateSession, sendError } from "./express";
-import { getPacket } from "../commons/utils/fetch";
-import { AuthenticationError, InvalidParamError, PermissionError } from "./errors";
-import { PacketDataType } from "../commons/types/packet";
-import { UserIdType, UserNameType } from "../commons/types/user";
-import { PermissionType } from "./apiauth";
+import { saveSession, regenerateSession, sendError } from "../express";
+import { getPacket } from "../../commons/utils/fetch";
+import { AuthenticationError, InvalidParamError, PermissionError } from "../errors";
+import { PacketDataType } from "../../commons/types/packet";
+import { UserIdType, UserNameType } from "../../commons/types/user";
+import { SessionType, AuthSessionType, TokenSessionType, UserInfoType } from "../types/oauth";
 
-type AuthSessionType = { codeVerifier: string, returnTo: string, expiresAt:Date };
-type TokenSessionType = { accessToken:string, tokenType:string, refreshToken:string, scope:string, expiresAt:Date };
-export type UserInfoType = {
-  userId: UserIdType,
-  userName: UserNameType,
-  data: object,
-  expiresAt: Date
-};
-export type AccessInfoType = {
-  userId: UserIdType,
-  permissionList: PermissionType[],
-}
-export type SessionType = { 
-  auths?: { [state:string]: AuthSessionType },
-  token?: TokenSessionType,
-  userInfo?: UserInfoType,
-  accessInfo?: AccessInfoType,
-};
-
-// const CLIENT_NAME = mconfig.get("clientName");
 const CLIENT_ID = env.get("CLIENT_ID", z.string().nonempty());
 const CLIENT_SECRET = env.get("CLIENT_SECRET", z.string().nonempty());
-const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", z.string().startsWith("https://").nonempty());
-const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", z.string().startsWith("https://").nonempty());
+const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", z.string().startsWith("https://"));
+const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", z.union([z.string().startsWith("http://localhost"), z.string().startsWith("https://")]));
 
 const OAUTH_CALLBACK_PATH = env.get("OAUTH_CALLBACK_PATH", z.string().nonempty());
 const OAUTH_TOKEN_PATH = env.get("OAUTH_TOKEN_PATH", z.string().nonempty());
@@ -161,10 +141,10 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   const accessToken = await getAccessToken(request).catch(()=>null);
   if(accessToken == null) return null;
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_DOMAIN);
-  const fetchReturn = await getPacket(url, { accessToken })
+  const fetchReturn = await getPacket({url, option:{ accessToken }})
                       .then(({data})=>data as PacketDataType)
                       .catch(error=>{console.error(error);return null;});
-  if(fetchReturn == null) return null;
+  if(fetchReturn === null) return null;
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
   const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:UserIdType, user_name:UserNameType, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
@@ -219,7 +199,7 @@ export async function processCallbackThenRedirect(request:express.Request, respo
       expires_at: expiresAt
     } = token.data;
     await regenerateSession(request);
-    for(let [state, auth] of Object.entries(auths)){
+    for(const [state, auth] of Object.entries(auths)){
       if(state == returnedState) continue;
       await setAuthSession(request, state, auth);
     }
@@ -230,7 +210,7 @@ export async function processCallbackThenRedirect(request:express.Request, respo
 }
 
 export async function signoutThenRedirectTop(request:express.Request, response:express.Response){
-  const { auths } = await getSession(request);
+  const { auths } = getSession(request);
   // await clearAuthSession(request);
   await clearTokenSession(request);
   await clearUserInfoSession(request);

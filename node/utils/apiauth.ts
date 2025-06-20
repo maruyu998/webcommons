@@ -1,18 +1,8 @@
-import { z } from "zod";
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
-import { generateRandom } from "../commons/utils/random";
-import { UserIdType, UserNameType } from "../commons/types/user";
-
-export const PermissionSchema = z.string().brand<"Permission">();
-export type PermissionType = z.infer<typeof PermissionSchema>;
-type ApiauthType = {
-  apiauthId: string,
-  apiKey: string,
-  userId: UserIdType,
-  permissionList: PermissionType[],
-  expiresAt: Date|null,
-};
+import { generateRandom } from "../../commons/utils/random";
+import { UserIdType } from "../../commons/types/user";
+import { ApiauthType, PermissionType } from "../types/apiauth";
 
 const ApiauthModel = mongoose.model<ApiauthType>("mwc_apiauth", 
   new mongoose.Schema<ApiauthType>({
