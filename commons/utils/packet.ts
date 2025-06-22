@@ -7,30 +7,25 @@ import { UnsupportedError } from "../../node/errors";
 
 const VERSION = 2;
 export function serializePacket({
-  title,
-  message,
   error,
   data,
   developMode
 }:{
-  title: string
-  message: string
   error?: Error
   data?: PacketDataType,
   developMode?: boolean
 }):PacketSerializedType{
   function serialize(data?:PacketDataType):PacketSerializedDataType{
-    if(data === undefined) return { type:"undefined", data:undefined };
-    if(data === null) return { type:"null", data: null };
-    if(isString(data)) return { type:"string", data};
-    if(isNumber(data)) return { type:"number", data };
-    if(isBoolean(data)) return { type:"boolean", data };
-    if(isDate(data)) return { type:"date", data: data.getTime() };
-    if(isMdateTz(data)) return { type:"mdateTz", data: data.toJson() };
-    if(isMdate(data)) return { type:"mdate", data: data.toJson() };
-    if(isArray(data)) return { type:"array", data: data.map(o=>serialize(o)) };
-    if(isObject(data)) return { type:"object",
-      data: objectMapAssign(data, ([k,v])=>({[k]:serialize(v as PacketDataType)})) as {[key:string]:PacketSerializedDataType}
+    if(data === null) return { t:"nl", d:null };
+    if(isString(data)) return { t:"s", d:data};
+    if(isNumber(data)) return { t:"nm", d:data };
+    if(isBoolean(data)) return { t:"b", d:data };
+    if(isDate(data)) return { t:"d", d:data.getTime() };
+    if(isMdateTz(data)) return { t:"mt", d:data.toJson() };
+    if(isMdate(data)) return { t:"m", d:data.toJson() };
+    if(isArray(data)) return { t:"a", d:data.map(o=>serialize(o)) };
+    if(isObject(data)) return { t:"o",
+      d: objectMapAssign(data, ([k,v])=>({[k]:serialize(v as PacketDataType)})) as {[key:string]:PacketSerializedDataType}
     };
     /* eslint-disable-next-line */
     console.error({data}, typeof data);
@@ -42,7 +37,7 @@ export function serializePacket({
     stack: developMode ? error.stack : undefined,
     cause: developMode ? error.cause : undefined
   } : undefined;
-  const packetSerialized = { title, message, error: errorSerialized, data: serialize(data), version:VERSION } as PacketSerializedType;
+  const packetSerialized:PacketSerializedType = { e: errorSerialized, d: serialize(data), v:VERSION };
   return packetSerialized;
 }
 
@@ -52,41 +47,36 @@ export function deserializePacket(packetSerialized:PacketSerializedType):PacketT
       console.error("packet:", serializedData);
       throw new Error("packet parcing error");
     }
-    const { type, data } = serializedData;
-    if(type === "string") return String(data);
-    if(type === "number") return Number(data);
-    if(type === "boolean") return Boolean(data);
-    if(type === "date") return new Date(data as number);
-    if(type === "mdateTz") return MdateTz.fromJson(data as {cls:string, time:number, tz:number});
-    if(type === "mdate") return Mdate.fromJson(data as {cls:string, time:number});
-    if(type === "array") return (data as PacketSerializedDataType[]).map(o=>deserialize(o));
-    if(type === "object") return Object.assign({},
+    const { t: type, d: data } = serializedData;
+    if(type === "s") return String(data);
+    if(type === "nm") return Number(data);
+    if(type === "b") return Boolean(data);
+    if(type === "d") return new Date(data as number);
+    if(type === "mt") return MdateTz.fromJson(data as {cls:string, time:number, tz:number});
+    if(type === "m") return Mdate.fromJson(data as {cls:string, time:number});
+    if(type === "a") return (data as PacketSerializedDataType[]).map(o=>deserialize(o));
+    if(type === "o") return Object.assign({},
       ...Object.entries(data as {[key:string]:PacketSerializedDataType}).map(([k,v])=>({[k]:deserialize(v)}))
     ) as {[key:string]:PacketSerializedDataType};
-    if(type === "undefined") return undefined;
-    if(type === "null") return null;
+    if(type === "nl") return null;
     console.error(serializedData, typeof data);
     throw new Error("not implemented in packet conditions");
   }
-  
-  const { title, message } = packetSerialized;
-  let { version } = packetSerialized;
-  if(version == undefined) version = 1;
-  const packet = { title, message, version } as PacketType;
-  if(version == 1){
-    packet.data = deserialize(packetSerialized["convertedData"]);
-  }
-  else if(version == 2){
-    if(packetSerialized.data !== undefined) packet.data = deserialize(packetSerialized.data);
+  let { v: version, e: error } = packetSerialized;
+  const packet = { version } as PacketType;
+  if(version == undefined) throw new UnsupportedError("version is not found in packet.");
+  if(version == 1) throw new UnsupportedError("version 1 packet is not supported.");
+  if(version == 2){
+    if(packetSerialized.d !== undefined) packet.data = deserialize(packetSerialized.d);
   }
   else{
     throw new UnsupportedError(`version:${version} is not supported yet.`);
   }
-  if(packetSerialized.error){
-    const error = new Error(packetSerialized.error.message, { cause: packetSerialized.error.cause });
-    error.name = packetSerialized.error.name;
-    error.stack = packetSerialized.error.stack;
-    packet.error = error;
+  if(error){
+    const _error = new Error(error.message, { cause: error.cause });
+    _error.name = error.name;
+    _error.stack = error.stack;
+    packet.error = _error;
   }
   return packet;
 }

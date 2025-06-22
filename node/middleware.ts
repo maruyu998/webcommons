@@ -7,7 +7,7 @@ import { PermissionType } from "./types/apiauth";
 import { getInfoFromApiKey } from "./utils/apiauth";
 import { z } from "zod";
 import { deserializePacket } from "../commons/utils/packet";
-import { PacketSchema } from "../commons/types/packet";
+import { PacketSchema, PacketSerializedSchema } from "../commons/types/packet";
 
 export async function parseStats(
   request:express.Request,
@@ -65,7 +65,7 @@ export function requireApiKey(...requiredPermissionList:PermissionType[]){
 }
 
 export function deserializePacketInQuery(request:express.Request, response:express.Response, next:express.NextFunction){
-  const { success, error, data: serializedPacket } = PacketSchema.safeParse(JSON.parse(response.locals.query.packet));
+  const { success, error, data: serializedPacket } = PacketSerializedSchema.safeParse(JSON.parse(response.locals.query.packet));
   if(!success){
     console.error(error);
     return sendError(response, new InputFormatError("query.packet is not serializedPacket type."))
@@ -75,7 +75,7 @@ export function deserializePacketInQuery(request:express.Request, response:expre
 }
 
 export function deserializePacketInBody(request:express.Request, response:express.Response, next:express.NextFunction){
-  const { success, error, data: serializedPacket } = PacketSchema.safeParse(response.locals.body);
+  const { success, error, data: serializedPacket } = PacketSerializedSchema.safeParse(response.locals.body);
   if(!success){
     console.error(error);
     return sendError(response, new InputFormatError("body is not serializedPacket type."))

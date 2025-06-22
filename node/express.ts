@@ -37,7 +37,7 @@ export function asyncHandler(
   ) };
 }
 
-function generateLogText(response:express.Response, title:string, message:string){
+function generateLogText(response:express.Response, verboseText:string){
   const logTexts:string[] = [];
   const date = MdateTz.now(SERVER_TIME_ZONE).format("YYYY/MM/DD_HH:mm:ss");
   logTexts.push(date);
@@ -54,38 +54,34 @@ function generateLogText(response:express.Response, title:string, message:string
       logTexts.push(`${userId}(API)`);
     }
   }catch(e){}
-  logTexts.push(`[${title}]`, message);
+  logTexts.push(verboseText);
   return logTexts.join(" ");
 }
 
-export function sendMessage(response:express.Response, title:string, message:string, verbose:boolean=true){
-  if(verbose){
-    console.info(generateLogText(response, title, message));
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+export function sendData(response:express.Response, data?:any, verboseText?:string):void{
+  if(verboseText !== undefined){
+    console.info(generateLogText(response, verboseText));
   }
-  response.status(204).json(serializePacket({title, message}));
+  if(data !== undefined){
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+    response.status(200).json(serializePacket({data}));
+  }else{
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+    response.status(204).json(serializePacket({}));
+  }
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function sendData(response:express.Response, title:string, message:string, data:any, verbose:boolean=true):void{
-  if(verbose){
-    console.info(generateLogText(response, title, message));
-  }
-  /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
-  response.status(200).json(serializePacket({title, message, data}));
-}
-
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function sendError(response:express.Response, error:Error, data?:any):void{
+export function sendError(response:express.Response, error:Error):void{
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   const { url, method } = response.locals.stats;
-  console.error(generateLogText(response, error.name, error.message), `${[method]}${url}`);
+  console.error(generateLogText(response, `[${error.name}] ${error.message}`), `${[method]}${url}`);
   if((!(error instanceof CustomError) || error.secret)){
     error = new InternalServerError("Internal Server Error");
   }
-  const title = error.name;
-  const message = error.message;
   const statusCode = error instanceof CustomError ? error.errorcode : 500;
-  response.status(statusCode).json(serializePacket({title, message, error, data}));
+  response.status(statusCode).json(serializePacket({error}));
 }
 
 export function getIpAddress(request:express.Request):string|null{

@@ -17,11 +17,18 @@ const ValueSchema = z.lazy(()=>z.union([
   z.record(PacketSerializedDataSchema)
 ]));
 export const PacketSerializedDataSchema = z.object({
-  type: z.enum([
-    "string", "number", "boolean", "date", "mdate", "mdateTz",
-    "array", "object", "null", "undefined"
+  t: z.enum([
+    "s",  // string
+    "nm",  // number
+    "b", // boolean
+    "d",    // date
+    "m",   // mdate
+    "mt",  //mdateTz
+    "a",   // array
+    "o",  // object
+    "nl",  // null
   ]),
-  data: ValueSchema
+  d: ValueSchema
 });
 export type PacketSerializedDataType = z.infer<typeof PacketSerializedDataSchema>;
 export const PacketDataSchema = z.lazy(() =>
@@ -40,16 +47,12 @@ export const PacketDataSchema = z.lazy(() =>
 );
 export type PacketDataType = z.infer<typeof PacketDataSchema>;
 export const PacketSerializedSchema = z.object({
-  title: z.string(),
-  message: z.string(),
-  error: z.instanceof(Error).optional(),
-  data: PacketSerializedDataSchema.optional(),
-  version: z.number().optional()
+  e: z.instanceof(Error).optional(),
+  d: PacketSerializedDataSchema.optional(),
+  v: z.number().optional()
 });
 export type PacketSerializedType = z.infer<typeof PacketSerializedSchema>;
 export const PacketSchema = z.object({
-  title: z.string(),
-  message: z.string(),
   error: z.instanceof(Error).optional(),
   data: PacketDataSchema.optional(),
   version: z.number().optional()

@@ -8,7 +8,7 @@ async function processFetch<T extends z.ZodRawShape>(
   fetchPromise:Promise<Response>,
   window?:Window&typeof globalThis,
   responseSchema?: z.ZodObject<T>,
-):Promise<PacketType|{title:string,message:string,data:z.infer<z.ZodObject<T>>}>{
+):Promise<z.infer<z.ZodObject<T>>>{
   return await fetchPromise
     .then(res=>{
       if(window === undefined) return res;
@@ -29,15 +29,15 @@ async function processFetch<T extends z.ZodRawShape>(
       throw error;
     })
     .then((packet:PacketSerializedType)=>deserializePacket(packet))
-    .then(({title, message, data, error})=>{
+    .then(({data, error})=>{
       if(error) throw error;
-      if(responseSchema == undefined) return { title, message, data };
+      if(responseSchema == undefined) return data;
       const { success, error: zodError, data:zodData } = responseSchema.safeParse(data);
       if(!success){
         console.error(zodError.format());
         throw zodError;
       }
-      return { title, message, data: zodData }
+      return zodData;
     });
 }
 
@@ -116,7 +116,7 @@ function packetRequest<
       const parsed = querySchema.safeParse(queryData);
       if(!parsed.success) throw parsed.error;
     }
-    const queryPacket = serializePacket({ title: "", message: "", data: queryData });
+    const queryPacket = serializePacket({ data: queryData });
     _url.searchParams.append("packet", JSON.stringify(queryPacket));
   }
   let body: BodyInit | undefined = undefined;
@@ -125,7 +125,7 @@ function packetRequest<
       const parsed = bodySchema.safeParse(bodyData);
       if(!parsed.success) throw parsed.error;
     }
-    body = JSON.stringify(serializePacket({ title: "", message: "", data: bodyData }));
+    body = JSON.stringify(serializePacket({ data: bodyData }));
   }
   const headers = createHeader(option);
   const fetchPromise = fetch(_url.toString(), { method, headers, body });
