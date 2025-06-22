@@ -73,7 +73,8 @@ app.use(helmet({
       "style-src": ["'self'", "'unsafe-inline'", ...STYLE_SOURCES],
       "img-src": ["'self'", "data:"],
       "font-src": ["'self'", ...FONT_SOURCES],
-      "frame-src": ["'self'", ...FRAME_SOURCES]
+      "frame-src": ["'self'", ...FRAME_SOURCES],
+      ...(isProductionMode ? {} : { "upgrade-insecure-requests": null }),
     },
   },
 }));
