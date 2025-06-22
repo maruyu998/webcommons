@@ -135,35 +135,45 @@ function packetRequest<
 export async function getPacket<
   TQuerySchema extends z.ZodTypeAny,
   TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(args: Omit<PacketRequestArgs<TQuerySchema,z.ZodUndefined,TResponseSchema>,"method"|"bodyData"|"bodySchema">){
+>(
+  args: Omit<PacketRequestArgs<TQuerySchema,z.ZodUndefined,TResponseSchema>,"method"|"bodyData"|"bodySchema">
+):Promise<z.infer<TResponseSchema>>{
   return await packetRequest({ ...args, method: "GET" });
 }
 export async function postPacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
   TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+>(
+  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
+):Promise<z.infer<TResponseSchema>>{
   return await packetRequest({ ...args, method: "POST" });
 }
 export async function patchPacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
   TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+>(
+  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
+):Promise<z.infer<TResponseSchema>>{
   return await packetRequest({ ...args, method: "PATCH" });
 }
 export async function putPacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
   TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+>(
+  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
+):Promise<z.infer<TResponseSchema>>{
   return await packetRequest({ ...args, method: "PUT" });
 }
 export async function deletePacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
   TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
+>(
+  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
+):Promise<z.infer<TResponseSchema>>{
   return await packetRequest({ ...args, method: "DELETE" });
 }
 
