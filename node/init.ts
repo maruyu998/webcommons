@@ -37,33 +37,37 @@ const TRUSTED_SUBNETS = env.get("TRUSTED_SUBNETS",z.string().transform(parseList
 const RATE_LIMIT_WINDOW = env.get("RATE_LIMIT_WINDOW",z.string().nonempty().transform(parseDuration));
 const RATE_LIMIT_COUNT = env.get("RATE_LIMIT_COUNT",z.coerce.number().positive());
 console.log({TRUSTED_SUBNETS, RATE_LIMIT_WINDOW, RATE_LIMIT_COUNT});
-app.use(rateLimit({
-  windowMs: RATE_LIMIT_WINDOW,
-  max: RATE_LIMIT_COUNT,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    const ip = req.ip || '';
-    if(!ipaddr.isValid(ip)) return false;
-    const addr = ipaddr.parse(ip);
-    return TRUSTED_SUBNETS.some(subnetStr => {
-      const [subnetIpStr, prefixLengthStr] = subnetStr.split('/');
-      if(!subnetIpStr || !prefixLengthStr) return false;
-      const subnetIp = ipaddr.parse(subnetIpStr);
-      const prefixLength = parseInt(prefixLengthStr, 10);
-      if(addr.kind() == "ipv4" && subnetIp.kind() == "ipv4") return (addr as ipaddr.IPv4).match((subnetIp as ipaddr.IPv4), prefixLength);
-      if(addr.kind() == "ipv6" && subnetIp.kind() == "ipv6") return (addr as ipaddr.IPv6).match((subnetIp as ipaddr.IPv6), prefixLength);
-      return false;
-    });
-  },
-}));
+
+const isProductionMode = env.get("RUN_MODE", z.enum(['development','production','test']).transform(v=>v==="production"));
+
+if(isProductionMode){
+  app.use(rateLimit({
+    windowMs: RATE_LIMIT_WINDOW,
+    max: RATE_LIMIT_COUNT,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => {
+      const ip = req.ip || '';
+      if(!ipaddr.isValid(ip)) return false;
+      const addr = ipaddr.parse(ip);
+      return TRUSTED_SUBNETS.some(subnetStr => {
+        const [subnetIpStr, prefixLengthStr] = subnetStr.split('/');
+        if(!subnetIpStr || !prefixLengthStr) return false;
+        const subnetIp = ipaddr.parse(subnetIpStr);
+        const prefixLength = parseInt(prefixLengthStr, 10);
+        if(addr.kind() == "ipv4" && subnetIp.kind() == "ipv4") return (addr as ipaddr.IPv4).match((subnetIp as ipaddr.IPv4), prefixLength);
+        if(addr.kind() == "ipv6" && subnetIp.kind() == "ipv6") return (addr as ipaddr.IPv6).match((subnetIp as ipaddr.IPv6), prefixLength);
+        return false;
+      });
+    },
+  }));
+}
 
 const SCRIPT_SOURCES = env.get("SCRIPT_SOURCES",z.string().transform(parseList));
 const STYLE_SOURCES = env.get("STYLE_SOURCES",z.string().transform(parseList));
 const FONT_SOURCES = env.get("FONT_SOURCES",z.string().transform(parseList));
 const FRAME_SOURCES = env.get("FRAME_SOURCES",z.string().transform(parseList));
 
-const isProductionMode = env.get("RUN_MODE", z.enum(['development','production','test']).transform(v=>v==="production"));
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
