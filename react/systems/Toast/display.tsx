@@ -17,13 +17,8 @@ interface ToastDisplayProps {
   pausedToasts: Set<string>;
 }
 
-interface ToastAnimationState {
-  [key: string]: 'entering' | 'entered' | 'exiting';
-}
-
 export default function ToastDisplay({ toastList, deleteToast, pauseToast, resumeToast, pausedToasts }: ToastDisplayProps) {
-  const [animationStates, setAnimationStates] = useState<ToastAnimationState>({});
-  const timeoutRefs = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const [expandedToast, setExpandedToast] = useState<string | null>(null);
 
   const toastVariants = {
     info: {
@@ -73,81 +68,45 @@ export default function ToastDisplay({ toastList, deleteToast, pauseToast, resum
     }
   };
 
-  useEffect(() => {
-    toastList.forEach(toast => {
-      if (!animationStates[toast.id]) {
-        setAnimationStates(prev => ({ ...prev, [toast.id]: 'entering' }));
-        
-        const enterTimeout = setTimeout(() => {
-          setAnimationStates(prev => ({ ...prev, [toast.id]: 'entered' }));
-        }, 50);
-        
-        timeoutRefs.current[toast.id] = enterTimeout;
-      }
-    });
-    
-    return () => {
-      Object.values(timeoutRefs.current).forEach(clearTimeout);
-    };
-  }, [toastList, animationStates]);
-
-  const handleDelete = (id: string) => {
-    setAnimationStates(prev => ({ ...prev, [id]: 'exiting' }));
-    
-    const exitTimeout = setTimeout(() => {
-      deleteToast(id);
-      setAnimationStates(prev => {
-        const newState = { ...prev };
-        delete newState[id];
-        return newState;
-      });
-      delete timeoutRefs.current[id];
-    }, 200);
-    
-    timeoutRefs.current[id] = exitTimeout;
-  };
-
-  const getAnimationClass = (id: string) => {
-    const state = animationStates[id] || 'entering';
-    switch (state) {
-      case 'entering':
-        return 'opacity-0 translate-x-full scale-95';
-      case 'entered':
-        return 'opacity-100 translate-x-0 scale-100';
-      case 'exiting':
-        return 'opacity-0 translate-x-full scale-95';
-      default:
-        return 'opacity-0 translate-x-full scale-95';
-    }
-  };
-
   return (
-    <div className="flex flex-col-reverse gap-3 max-w-sm w-full">
+    <div className="flex flex-col-reverse gap-3 w-full">
       {toastList.map(({ id, title, message, variant, deleteAt }) => {
         const variantStyles = toastVariants[variant];
         const isPaused = pausedToasts.has(id);
+        const isExpanded = expandedToast === id;
         const remainingTime = isPaused ? 5000 : Math.max(0, deleteAt.getTime() - Date.now());
         const totalDuration = 5000; // Default duration
         const progressPercentage = isPaused ? 100 : Math.max(0, (remainingTime / totalDuration) * 100);
+        
+        // Check if message is long (truncation logic)
+        const isLongMessage = message && message.length > 80;
+        const truncatedMessage = isLongMessage && !isExpanded ? message.substring(0, 80) + '...' : message;
         
         return (
           <div
             key={id}
             className={`
-              transform transition-all duration-200 ease-out
-              ${getAnimationClass(id)}
+              transform transition-all duration-300 ease-out
+              opacity-100 translate-x-0 scale-100
               ${variantStyles.bgColor}
               ${variantStyles.borderColor}
               border rounded-lg shadow-lg backdrop-blur-sm
               p-4 min-w-72 relative overflow-hidden
               hover:shadow-xl cursor-pointer
               ${isPaused ? 'ring-2 ring-offset-1 ring-current' : ''}
+              ${isExpanded ? 'max-w-md z-10' : 'max-w-sm z-0'}
             `}
             role="alert"
             aria-live="polite"
             aria-atomic="true"
-            onMouseEnter={() => pauseToast(id)}
-            onMouseLeave={() => resumeToast(id)}
+            onMouseEnter={() => {
+              pauseToast(id);
+              if (isLongMessage) setExpandedToast(id);
+            }}
+            onMouseLeave={() => {
+              resumeToast(id);
+              setExpandedToast(null);
+            }}
           >
             <div className="flex items-start gap-3">
               <div className={`flex-shrink-0 ${variantStyles.iconColor}`}>
@@ -160,9 +119,18 @@ export default function ToastDisplay({ toastList, deleteToast, pauseToast, resum
                   </h4>
                 )}
                 {message && (
-                  <p className={`text-sm ${variantStyles.messageColor} leading-relaxed`}>
-                    {message}
-                  </p>
+                  <div className="relative">
+                    <p className={`text-sm ${variantStyles.messageColor} leading-relaxed transition-all duration-300`}>
+                      {truncatedMessage}
+                    </p>
+                    {isLongMessage && (
+                      <div className={`mt-1 text-xs opacity-60 transition-all duration-200 ${
+                        isExpanded ? 'text-green-600' : 'text-gray-500'
+                      }`}>
+                        {isExpanded ? '✓ Expanded' : '🔍 Hover to expand'}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               <button
@@ -172,7 +140,7 @@ export default function ToastDisplay({ toastList, deleteToast, pauseToast, resum
                   hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-1
                   focus:ring-current
                 `}
-                onClick={() => handleDelete(id)}
+                onClick={() => deleteToast(id)}
                 aria-label="Close notification"
               >
                 <RiCloseLine className="w-4 h-4" />
