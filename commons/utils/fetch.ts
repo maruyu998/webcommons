@@ -4,11 +4,11 @@ import { z } from "zod";
 
 export const userAgentExample = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36";
 
-async function processFetch<T extends z.ZodRawShape>(
+async function processFetch<T extends z.ZodTypeAny>(
   fetchPromise:Promise<Response>,
   window?:Window&typeof globalThis,
-  responseSchema?: z.ZodObject<T>,
-):Promise<z.infer<z.ZodObject<T>>>{
+  responseSchema?: T,
+):Promise<z.infer<T>>{
   return await fetchPromise
     .then(res=>{
       if(window === undefined) return res;
@@ -17,8 +17,8 @@ async function processFetch<T extends z.ZodRawShape>(
       throw new Error("Redirect");
     })
     .then(res=>{
-      if(res.status == 200) return res;
-      throw new Error(`fetch status is not 200, [${res.status}] ${res.statusText} fetching ${res.url}`)
+      if(res.status >= 200 && res.status < 300) return res;
+      throw new Error(`fetch status is not 2xx, [${res.status}] ${res.statusText} fetching ${res.url}`)
     })
     .then(res=>res.json())
     .catch(error=>{
@@ -72,7 +72,7 @@ function createHeaderForm(option:OptionType){
 interface PacketRequestArgs<
   TQuerySchema extends z.ZodTypeAny = z.ZodUndefined,
   TBodySchema extends z.ZodTypeAny = z.ZodUndefined,
-  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
+  TResponseSchema extends z.ZodTypeAny = z.ZodUndefined
 >{
   url: URL;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -97,7 +97,7 @@ interface PacketRequestFormArgs<T extends z.ZodRawShape = z.ZodRawShape>{
 function packetRequest<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodObject<any>
+  TResponseSchema extends z.ZodTypeAny
 >({
   url,
   method,
@@ -134,46 +134,36 @@ function packetRequest<
 
 export async function getPacket<
   TQuerySchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(
-  args: Omit<PacketRequestArgs<TQuerySchema,z.ZodUndefined,TResponseSchema>,"method"|"bodyData"|"bodySchema">
-):Promise<z.infer<TResponseSchema>>{
+  TResponseSchema extends z.ZodTypeAny = z.ZodUndefined
+>(args: Omit<PacketRequestArgs<TQuerySchema,z.ZodUndefined,TResponseSchema>,"method"|"bodyData"|"bodySchema">){
   return await packetRequest({ ...args, method: "GET" });
 }
 export async function postPacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(
-  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
-):Promise<z.infer<TResponseSchema>>{
+  TResponseSchema extends z.ZodTypeAny = z.ZodUndefined
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
   return await packetRequest({ ...args, method: "POST" });
 }
 export async function patchPacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(
-  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
-):Promise<z.infer<TResponseSchema>>{
+  TResponseSchema extends z.ZodTypeAny = z.ZodUndefined
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
   return await packetRequest({ ...args, method: "PATCH" });
 }
 export async function putPacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(
-  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
-):Promise<z.infer<TResponseSchema>>{
+  TResponseSchema extends z.ZodTypeAny = z.ZodUndefined
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
   return await packetRequest({ ...args, method: "PUT" });
 }
 export async function deletePacket<
   TQuerySchema extends z.ZodTypeAny,
   TBodySchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodObject<any> = z.ZodObject<any>
->(
-  args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">
-):Promise<z.infer<TResponseSchema>>{
+  TResponseSchema extends z.ZodTypeAny = z.ZodUndefined
+>(args: Omit<PacketRequestArgs<TQuerySchema, TBodySchema, TResponseSchema>,"method">){
   return await packetRequest({ ...args, method: "DELETE" });
 }
 

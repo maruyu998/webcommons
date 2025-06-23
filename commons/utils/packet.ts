@@ -31,13 +31,16 @@ export function serializePacket({
     console.error({data}, typeof data);
     throw new Error("not implemented in packet conditions");
   }
-  const errorSerialized = error ? {
-    name: error.name,
-    message: error.message,
-    stack: developMode ? error.stack : undefined,
-    cause: developMode ? error.cause : undefined
-  } : undefined;
-  const packetSerialized:PacketSerializedType = { e: errorSerialized, d: serialize(data), v:VERSION };
+  const packetSerialized:PacketSerializedType = { 
+    v: VERSION,
+    e: error !== undefined ? {
+      name: error.name,
+      message: error.message,
+      stack: developMode ? error.stack : undefined,
+      cause: developMode ? error.cause : undefined
+    } : undefined,
+    d: data !== undefined ? serialize(data): undefined,
+  };
   return packetSerialized;
 }
 

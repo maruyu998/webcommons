@@ -142,7 +142,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   if(accessToken == null) return null;
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_DOMAIN);
   const fetchReturn = await getPacket({url, option:{ accessToken }})
-                      .then(({data})=>data as PacketDataType)
+                      .then((data)=>data as PacketDataType)
                       .catch(error=>{console.error(error);return null;});
   if(fetchReturn === null) return null;
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };

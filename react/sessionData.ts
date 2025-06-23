@@ -5,5 +5,5 @@ export async function saveSessionData(endpoint:string, key:string, data:any){
 }
 
 export async function getSessionData(endpoint:string, key:string){
-  return getPacket({url: new URL(`${endpoint}`), queryData: { key }}).then(({data})=>data);
+  return getPacket({url: new URL(`${endpoint}`), queryData: { key }}).then((result: any)=>result?.data);
 }
