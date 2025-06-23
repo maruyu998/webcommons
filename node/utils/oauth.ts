@@ -163,9 +163,7 @@ export async function redirectToSignin(request:express.Request, response:express
   const clientSecret = CLIENT_SECRET;
   // {authorization_uri} ? {client_id=} & {redirect_uri=(service_domain + /api/oauth/callback, etc)}
   //                     & {response_type=code} & {state=} & {scope=} & {code_challenge=} & {code_challenge_method=}
-  const uri = oauth2.code.getUri({ state, query: { 
-    client_secret: clientSecret, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod
-  } });
+  const uri = oauth2.code.getUri({ state, query: { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod } });
   response.redirect(uri);
 }
 

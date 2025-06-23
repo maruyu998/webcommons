@@ -111,7 +111,7 @@ export default function DatePicker({
   function renderDays(){
     const daysInMonth = getDaysInMonth(currentMonth, currentYear);
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    const days = new Array<JSX.Element>();
+    const days = new Array<React.ReactElement>();
 
     const prevMonthDays = getDaysInMonth(currentMonth - 1, currentYear);
     for(let i=firstDayOfMonth-1; i>=0; i--){

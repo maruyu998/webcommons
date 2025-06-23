@@ -80,7 +80,7 @@ export function deserializePacketInBody(request:express.Request, response:expres
     console.error(error);
     return sendError(response, new InputFormatError("body is not serializedPacket type."))
   }
-  response.locals.body = deserializePacket(serializedPacket);
+  response.locals.body = deserializePacket(serializedPacket).data;
   next();
 }
 
@@ -97,7 +97,7 @@ export function requireQueryZod<Schema extends z.ZodTypeAny>(zodSchema:Schema){
       const params = error.errors.map(e => e.path[0]);
       return sendError(response, new InvalidParamError(params.join(','), "invalidType"));
     }
-    // response.locals.zodQuery = {...(response.locals.zodQuery || {}), ...data};
+    // response.locals.query = {...(response.locals.query || {}), ...data};
     response.locals.query = data;
     next();
   }
@@ -116,7 +116,7 @@ export function requireBodyZod<Schema extends z.ZodTypeAny>(zodSchema:Schema){
       const params = error.errors.map(e => e.path[0]);
       return sendError(response, new InvalidParamError(params.join(','), "invalidType"));
     }
-    // response.locals.zodBody = {...(response.locals.zodBody || {}), ...data};
+    // response.locals.body = {...(response.locals.body || {}), ...data};
     response.locals.body = data;
     next();
   };

@@ -76,7 +76,7 @@ export function sendData(response:express.Response, data?:any, verboseText?:stri
 export function sendError(response:express.Response, error:Error):void{
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   const { url, method } = response.locals.stats;
-  console.error(generateLogText(response, `[${error.name}] ${error.message}`), `${[method]}${url}`);
+  console.error(generateLogText(response, `[${error.name}] ${error.message}`), `[${method}]${url}`);
   if((!(error instanceof CustomError) || error.secret)){
     error = new InternalServerError("Internal Server Error");
   }
