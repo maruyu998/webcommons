@@ -6,7 +6,6 @@ const ValueSchema = z.lazy(()=>z.union([
   z.number(),
   z.boolean(),
   z.null(),
-  z.undefined(),
   z.object({
     cls: z.string(),         // "date" | "mdate" | "mdateTz"
     time: UnixSchema,        // Unix timestamp
@@ -40,7 +39,6 @@ export const PacketDataSchema = z.lazy(() =>
     MdateSchema,
     MdateTzSchema,
     z.null(),
-    z.undefined(),
     z.array(PacketDataSchema),
     z.record(PacketDataSchema)
   ])
