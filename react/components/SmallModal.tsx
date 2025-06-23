@@ -6,12 +6,14 @@ export default function SmallModal({
   isOpen,
   onClose,
   title,
+  closeOnOverlayClick = true,
 }:{
   modalExtendClassName?: string,
   children: React.ReactNode
   isOpen: boolean,
   onClose: ()=>void,
   title?: React.ReactNode,
+  closeOnOverlayClick?: boolean,
 }){
   return (
     <div 
@@ -23,7 +25,7 @@ export default function SmallModal({
       `}
       onClick={e=>e.stopPropagation()}
     >
-      <div className="modal-overlay w-full h-full bg-gray-600 opacity-50 fixed" onClick={onClose}/>
+      <div className="modal-overlay w-full h-full bg-gray-600 opacity-50 fixed" onClick={closeOnOverlayClick ? onClose : undefined}/>
       <div className={`
         modal-container 
         bg-white z-50 rounded-lg shadow-xl
