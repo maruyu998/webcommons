@@ -15,14 +15,11 @@ export default function SmallModal({
   title?: React.ReactNode,
   closeOnOverlayClick?: boolean,
 }){
+  if (!isOpen) return null;
+  
   return (
     <div 
-      className={`
-        modal fixed flex items-center justify-center z-50 overscroll-contain 
-        transition duration-300 ease-in-out transform
-        w-full h-full top-0 left-0 max-w-full max-h-full
-        ${(isOpen ? "" : " opacity-0 pointer-events-none")}
-      `}
+      className="modal fixed flex items-center justify-center z-50 overscroll-contain transition duration-300 ease-in-out transform w-full h-full top-0 left-0 max-w-full max-h-full"
       onClick={e=>e.stopPropagation()}
     >
       <div className="modal-overlay w-full h-full bg-gray-600 opacity-50 fixed" onClick={closeOnOverlayClick ? onClose : undefined}/>
@@ -55,7 +52,7 @@ export default function SmallModal({
         
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {isOpen && children}
+          {children}
         </div>
       </div>
     </div>
