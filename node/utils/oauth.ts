@@ -1,5 +1,5 @@
 import { z } from "zod";
-import env, { parseDuration } from "../env";
+import env, { parseDuration, urlSchema } from "../env";
 import express from "express";
 import ClientOAuth2 from "client-oauth2";
 import { randomUUID } from "crypto";
@@ -14,8 +14,9 @@ import { SessionType, AuthSessionType, TokenSessionType, UserInfoType } from "..
 
 const CLIENT_ID = env.get("CLIENT_ID", z.string().nonempty());
 const CLIENT_SECRET = env.get("CLIENT_SECRET", z.string().nonempty());
-const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", z.string().startsWith("https://"));
-const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", z.union([z.string().startsWith("http://localhost"), z.string().startsWith("https://")]));
+const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", urlSchema);
+const OAUTH_INTERNAL_DOMAIN = env.get("OAUTH_INTERNAL_DOMAIN", urlSchema, OAUTH_DOMAIN);
+const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", urlSchema);
 
 const OAUTH_CALLBACK_PATH = env.get("OAUTH_CALLBACK_PATH", z.string().nonempty());
 const OAUTH_TOKEN_PATH = env.get("OAUTH_TOKEN_PATH", z.string().nonempty());
@@ -30,9 +31,9 @@ const SCOPES = ["user"];
 const oauth2 = new ClientOAuth2({
   clientId: CLIENT_ID,
   clientSecret: CLIENT_SECRET,
-  accessTokenUri: new URL(OAUTH_TOKEN_PATH, OAUTH_DOMAIN).toString(),
-  authorizationUri: new URL(OAUTH_AUTHORIZE_PATH, OAUTH_DOMAIN).toString(),
-  redirectUri: new URL(OAUTH_CALLBACK_PATH, SERVICE_DOMAIN).toString(),
+  accessTokenUri: new URL(OAUTH_TOKEN_PATH, OAUTH_INTERNAL_DOMAIN).toString(), // 内部API呼び出し
+  authorizationUri: new URL(OAUTH_AUTHORIZE_PATH, OAUTH_DOMAIN).toString(), // ユーザーブラウザ向け
+  redirectUri: new URL(OAUTH_CALLBACK_PATH, SERVICE_DOMAIN).toString(), // ユーザーブラウザ向け
   scopes: SCOPES
 });
 
@@ -140,7 +141,7 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   if(willReload === false && userInfo != null && userInfo.expiresAt.getTime() > Date.now()) return userInfo;
   const accessToken = await getAccessToken(request).catch(()=>null);
   if(accessToken == null) return null;
-  const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_DOMAIN);
+  const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_INTERNAL_DOMAIN); // 内部API呼び出し
   const fetchReturn = await getPacket({url, option:{ accessToken }})
                       .then((data)=>data as PacketDataType)
                       .catch(error=>{console.error(error);return null;});
@@ -156,11 +157,10 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
 export async function redirectToSignin(request:express.Request, response:express.Response):Promise<void>{
   const returnTo = request.url;
   const state = randomUUID();
-  const { code_verifier: codeVerifier, code_challenge: codeChallenge } = await pkceChallenge();
+  const { code_verifier: codeVerifier, code_challenge: codeChallenge } = pkceChallenge();
   const expiresAt = new Date(Date.now() + AUTH_SESSION_KEEP_DURATION);
   await setAuthSession(request, state, { codeVerifier, returnTo, expiresAt });
   const codeChallengeMethod = "S256";
-  const clientSecret = CLIENT_SECRET;
   // {authorization_uri} ? {client_id=} & {redirect_uri=(service_domain + /api/oauth/callback, etc)}
   //                     & {response_type=code} & {state=} & {scope=} & {code_challenge=} & {code_challenge_method=}
   const uri = oauth2.code.getUri({ state, query: { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod } });
@@ -173,7 +173,6 @@ export async function processCallbackThenRedirect(request:express.Request, respo
   if(auths == undefined) return sendError(response, new AuthenticationError("auth is empty."));
   if(request.query.state === undefined) return sendError(response, new InvalidParamError("state", "missing"));
   const returnedState = String(request.query.state);
-
   const auth = auths[returnedState];
   if(auth == undefined) return sendError(response, new AuthenticationError("state is not match."));
   const { codeVerifier, returnTo, expiresAt } = auth;
@@ -183,28 +182,26 @@ export async function processCallbackThenRedirect(request:express.Request, respo
   }
   if(!codeVerifier) return sendError(response, new AuthenticationError("codeVerifier is empty."));
   await clearAuthSession(request, returnedState);
-
   // post to access_token_uri with body { grant_type=authorization_code, code, redirect_uri, code_verifier }
   // response: { access_token, token_type, expires_in(second), refresh_token, scope }
   await oauth2.code.getToken(request.originalUrl, { body: { code_verifier: codeVerifier } })
-  .catch((error:Error)=>{sendError(response, error); throw error;})
-  .then(async token=>{
-    const { 
-      access_token: accessToken,
-      token_type: tokenType,
-      refresh_token: refreshToken,
-      scope,
-      expires_at: expiresAt
-    } = token.data;
-    await regenerateSession(request);
-    for(const [state, auth] of Object.entries(auths)){
-      if(state == returnedState) continue;
-      await setAuthSession(request, state, auth);
-    }
-    await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
-    return response.redirect(returnTo || "/");
-  })
-  .catch(()=>null);
+        .then(async token=>{
+          const { 
+            access_token: accessToken,
+            token_type: tokenType,
+            refresh_token: refreshToken,
+            scope,
+            expires_at: expiresAt
+          } = token.data;
+          await regenerateSession(request);
+          for(const [state, auth] of Object.entries(auths)){
+            if(state == returnedState) continue;
+            await setAuthSession(request, state, auth);
+          }
+          await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
+          return response.redirect(returnTo || "/");
+        })
+        .catch((error:Error)=>{sendError(response, error); throw error;})
 }
 
 export async function signoutThenRedirectTop(request:express.Request, response:express.Response){

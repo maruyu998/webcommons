@@ -1,6 +1,11 @@
 import 'dotenv/config';
-import { ZodType, ZodTypeDef } from "zod";
+import { ZodType, ZodTypeDef, z } from "zod";
 import { DAY, HOUR, MINUTE } from '../commons/utils/time';
+
+export const urlSchema = z.union([
+  z.string().startsWith("http://localhost"), 
+  z.string().startsWith("https://")
+]);
 
 export function parseDuration(input: string): number {
   const match = input.match(/^(\d+)(day|hour|minute|ms)$/);
@@ -43,9 +48,12 @@ export function parseList(str: string): string[] {
           .filter(item => item.length > 0);
 }
 
-function get<TInput,TOutput>(key:string, schema:ZodType<TOutput,ZodTypeDef,TInput>):TOutput{
+function get<TInput,TOutput>(key:string, schema:ZodType<TOutput,ZodTypeDef,TInput>, defaultValue?:TOutput):TOutput{
   const value = process.env[key];
   if(value === undefined){
+    if(defaultValue !== undefined){
+      return defaultValue;
+    }
     throw new Error(`Missing env var: ${key}`);
   }
   try{
