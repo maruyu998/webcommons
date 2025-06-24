@@ -6,16 +6,9 @@ export const userAgentExample = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple
 
 async function processFetch<T extends z.ZodTypeAny>(
   fetchPromise:Promise<Response>,
-  window?:Window&typeof globalThis,
   responseSchema?: T,
 ):Promise<z.infer<T>>{
   return await fetchPromise
-    .then(res=>{
-      if(window === undefined) return res;
-      if(!res.redirected) return res;
-      window.location.href = res.url;
-      throw new Error("Redirect");
-    })
     .then(res=>{
       if(res.status >= 200 && res.status < 300) return res;
       throw new Error(`fetch status is not 2xx, [${res.status}] ${res.statusText} fetching ${res.url}`)
@@ -81,7 +74,6 @@ interface PacketRequestArgs<
   responseSchema?: TResponseSchema;
   queryData?: z.infer<TQuerySchema>;
   bodyData?: z.infer<TBodySchema>;
-  window?: Window & typeof globalThis;
   option?: OptionType;
 }
 
@@ -90,7 +82,6 @@ interface PacketRequestFormArgs<T extends z.ZodRawShape = z.ZodRawShape>{
   method?: "POST"|"PUT"|"PATCH"|"DELETE";
   formData: Record<string, string|Blob|File>;
   responseSchema?: z.AnyZodObject;
-  window?: Window & typeof globalThis;
   option?: OptionType;
 }
 
@@ -106,7 +97,6 @@ function packetRequest<
   bodyData,
   bodySchema,
   responseSchema,
-  window,
   option = {},
 }:PacketRequestArgs<TQuerySchema,TBodySchema,TResponseSchema>){
   if(method == "GET" && (bodyData || bodySchema)) throw Error("GET method cannot have body data or schema.");
@@ -129,7 +119,7 @@ function packetRequest<
   }
   const headers = createHeader(option);
   const fetchPromise = fetch(_url.toString(), { method, headers, body });
-  return processFetch(fetchPromise, window, responseSchema);
+  return processFetch(fetchPromise, responseSchema);
 }
 
 export async function getPacket<
@@ -172,7 +162,6 @@ function packetFormRequest<T extends z.ZodRawShape>({
   method,
   formData,
   responseSchema,
-  window,
   option = {},
 }: PacketRequestFormArgs<T>) {
   const _url = typeof url === "string" ? new URL(url) : url;
@@ -182,7 +171,7 @@ function packetFormRequest<T extends z.ZodRawShape>({
   }
   const headers = createHeaderForm(option);
   const fetchPromise = fetch(_url.toString(), { method, headers, body });
-  return processFetch(fetchPromise, window, responseSchema);
+  return processFetch(fetchPromise, responseSchema);
 }
 export async function postFormPacket<T extends z.ZodRawShape>(
   args: Omit<PacketRequestFormArgs<T>, "method">

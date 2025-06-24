@@ -41,6 +41,16 @@ export class UnsupportedError extends CustomError {
   }
 }
 /// 401 Unauthorized
+export class SigninRequiredError extends CustomError {
+  constructor(){
+    super({
+      name: "SigninRequiredError",
+      message: "sign in is required to access this path",
+      errorcode: 401,
+      secret: false,
+    })
+  }
+}
 export class AuthenticationError extends CustomError {
   constructor(message: string){
     super({

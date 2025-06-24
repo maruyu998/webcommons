@@ -204,7 +204,7 @@ export async function processCallbackThenRedirect(request:express.Request, respo
         .catch((error:Error)=>{sendError(response, error); throw error;})
 }
 
-export async function signoutThenRedirectTop(request:express.Request, response:express.Response){
+export async function signout(request:express.Request, response:express.Response){
   const { auths } = getSession(request);
   // await clearAuthSession(request);
   await clearTokenSession(request);
@@ -215,13 +215,13 @@ export async function signoutThenRedirectTop(request:express.Request, response:e
       await setAuthSession(request, state, auth);
     }
   }
-  response.redirect("/");
+  response.status(204).send();
 }
 
 export async function refreshUserInfo(request:express.Request, response:express.Response){
   const willReload = true;
   await getUserInfo(request, willReload);
-  response.redirect("/");
+  response.status(204).send();
 }
 ////////////////////////////////// [ M I D D L E W A R E S ] //////////////////////////////////
 export async function redirectIfNotSignedIn(request:express.Request, response:express.Response, next:express.NextFunction):Promise<void>{

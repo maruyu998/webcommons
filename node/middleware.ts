@@ -1,6 +1,6 @@
 import express from "express";
 import { getIpAddress, sendError } from "./express";
-import { InvalidParamError, AuthenticationError, InputFormatError } from "./errors";
+import { InvalidParamError, AuthenticationError, InputFormatError, SigninRequiredError } from "./errors";
 import { AccessInfoType, UserInfoType } from "./types/oauth";
 import { getUserInfo } from "./utils/oauth";
 import { PermissionType } from "./types/apiauth";
@@ -31,13 +31,15 @@ export async function requireSignin(
 ){
   await getUserInfo(request)
   .then(userInfo=>{
-    if(userInfo == null) throw new AuthenticationError("current user info is null");
-    response.locals.userInfo = userInfo as UserInfoType;
-    next();
+    if(userInfo !== null){
+      response.locals.userInfo = userInfo as UserInfoType;
+      next();
+    }else{
+      sendError(response, new SigninRequiredError());
+    }
   })
   .catch(error=>{
-    if(error instanceof AuthenticationError) return response.redirect("/signin");
-    sendError(response, new AuthenticationError("Sign in is required"));
+    sendError(response, error);
   });
 }
 
