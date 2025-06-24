@@ -5,6 +5,7 @@ export { default as env } from './env';
 export * from './errors';
 export * from './express';
 export * from './middleware';
+export * from './middleware/sessionData';
 export * from './userdata';
 export * from './push';
 
