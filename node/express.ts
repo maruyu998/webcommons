@@ -73,10 +73,10 @@ export function sendData(response:express.Response, data?:any, verboseText?:stri
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function sendError(response:express.Response, error:Error):void{
+export function sendError(response:express.Response, error:Error, verbose:boolean=true):void{
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   const { url, method } = response.locals.stats;
-  console.error(generateLogText(response, `[${error.name}] ${error.message}`), `[${method}]${url}`);
+  if(verbose) console.error(generateLogText(response, `[${error.name}] ${error.message}`), `[${method}]${url}`);
   if((!(error instanceof CustomError) || error.secret)){
     error = new InternalServerError("Internal Server Error");
   }
