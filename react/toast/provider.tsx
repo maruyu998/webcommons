@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { generateRandom } from "../../../commons/utils/random";
+import { generateRandom } from "../../commons/utils/random";
 import { ToastType } from "./types";
 import ToastDisplay from './display';
 
