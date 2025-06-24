@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 export default function SmallModal({
   modalExtendClassName,
@@ -17,11 +17,34 @@ export default function SmallModal({
   footer?: React.ReactNode,
   closeOnOverlayClick?: boolean,
 }){
-  if (!isOpen) return null;
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isAnimating, setIsAnimating] = useState(isOpen);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Opening: immediately render and start animation
+      setShouldRender(true);
+      const timer = setTimeout(() => setIsAnimating(true), 10); // Small delay for CSS transition
+      return () => clearTimeout(timer);
+    } else if (shouldRender) {
+      // Closing: start closing animation only if currently rendered
+      setIsAnimating(false);
+      // Remove from DOM after animation completes
+      const timer = setTimeout(() => setShouldRender(false), 300); // Match transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, shouldRender]);
+
+  if (!shouldRender) return null;
   
   return (
     <div 
-      className="modal fixed flex items-center justify-center z-50 overscroll-contain transition duration-300 ease-in-out transform w-full h-full top-0 left-0 max-w-full max-h-full"
+      className={`
+        modal fixed flex items-center justify-center z-50 overscroll-contain 
+        transition duration-300 ease-in-out transform
+        w-full h-full top-0 left-0 max-w-full max-h-full
+        ${isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+      `}
       onClick={e=>e.stopPropagation()}
     >
       <div className="modal-overlay w-full h-full bg-gray-600 opacity-50 fixed" onClick={closeOnOverlayClick ? onClose : undefined}/>
