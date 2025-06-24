@@ -51,9 +51,11 @@ export function ToastProvider({children}:{children:React.ReactNode}){
   }, []);
 
   function addToast(title:string|null, message:string|null, variant:ToastType["variant"], duration:number=5000){
-    const deleteAt = new Date(Date.now() + duration);
+    const now = new Date();
+    const createdAt = now;
+    const deleteAt = new Date(now.getTime() + duration);
     const id = generateRandom(10);
-    setToastList(prev => [...prev, { id, title, message, variant, deleteAt }]);
+    setToastList(prev => [...prev, { id, title, message, variant, createdAt, deleteAt }]);
   }
 
   function deleteToast(id:string){
@@ -66,11 +68,17 @@ export function ToastProvider({children}:{children:React.ReactNode}){
   }
 
   function pauseToast(id: string) {
+    const now = new Date();
     setPausedToasts(prev => new Set(prev).add(id));
-    // Extend the toast's lifetime when paused
+    
+    // Reset to full duration when hovering - update both createdAt and deleteAt
     setToastList(prev => prev.map(toast => 
       toast.id === id 
-        ? { ...toast, deleteAt: new Date(Date.now() + 5000) }
+        ? { 
+            ...toast, 
+            createdAt: now, 
+            deleteAt: new Date(now.getTime() + 5000) 
+          } // Reset to 5 seconds with new creation time
         : toast
     ));
   }
@@ -81,12 +89,7 @@ export function ToastProvider({children}:{children:React.ReactNode}){
       newSet.delete(id);
       return newSet;
     });
-    // Reset the toast's lifetime when resumed
-    setToastList(prev => prev.map(toast => 
-      toast.id === id 
-        ? { ...toast, deleteAt: new Date(Date.now() + 3000) } // Shorter time when resumed
-        : toast
-    ));
+    // Time already reset during pause, just resume countdown
   }
 
   return (

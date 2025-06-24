@@ -3,5 +3,6 @@ export type ToastType = {
   title: string|null,
   message: string|null,
   variant: "info"|"success"|"loading"|"warning"|"error"
+  createdAt: Date,
   deleteAt: Date
 }

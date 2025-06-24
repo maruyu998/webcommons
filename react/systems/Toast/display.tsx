@@ -20,6 +20,15 @@ interface ToastDisplayProps {
 export default function ToastDisplay({ toastList, deleteToast, pauseToast, resumeToast, pausedToasts }: ToastDisplayProps) {
   const [expandedToast, setExpandedToast] = useState<string | null>(null);
   const [copiedToast, setCopiedToast] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // Update current time regularly for progress bars
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCopyToClipboard = async (id: string, title: string | null, message: string | null) => {
     try {
@@ -82,14 +91,23 @@ export default function ToastDisplay({ toastList, deleteToast, pauseToast, resum
 
   return (
     <div className="flex flex-col-reverse gap-3 items-end">
-      {toastList.map(({ id, title, message, variant, deleteAt }) => {
+      {toastList.map(({ id, title, message, variant, createdAt, deleteAt }) => {
         const variantStyles = toastVariants[variant];
         const isPaused = pausedToasts.has(id);
         const isExpanded = expandedToast === id;
         const isCopied = copiedToast === id;
-        const remainingTime = isPaused ? 5000 : Math.max(0, deleteAt.getTime() - Date.now());
-        const totalDuration = 5000; // Default duration
-        const progressPercentage = isPaused ? 100 : Math.max(0, (remainingTime / totalDuration) * 100);
+        // Calculate progress based on creation time and current time
+        const totalDuration = deleteAt.getTime() - createdAt.getTime();
+        let progressPercentage: number;
+        
+        if (isPaused) {
+          // When paused, freeze the progress bar at 100% (full)
+          progressPercentage = 100;
+        } else {
+          // Normal calculation when not paused
+          const remainingTime = Math.max(0, deleteAt.getTime() - currentTime);
+          progressPercentage = Math.max(0, Math.min(100, (remainingTime / totalDuration) * 100));
+        }
         
         // Check if message is long (truncation logic)
         const isLongMessage = message && message.length > 80;
@@ -187,10 +205,9 @@ export default function ToastDisplay({ toastList, deleteToast, pauseToast, resum
             {/* Progress bar */}
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-lg overflow-hidden">
               <div 
-                className={`h-full transition-all ease-linear ${variantStyles.iconColor.replace('text-', 'bg-')} ${isPaused ? 'animate-pulse' : ''}`}
+                className={`h-full ${variantStyles.iconColor.replace('text-', 'bg-')} ${isPaused ? 'animate-pulse' : 'transition-all duration-100 ease-linear'}`}
                 style={{
-                  width: `${progressPercentage}%`,
-                  transition: isPaused ? 'none' : (remainingTime > 0 ? `width ${remainingTime}ms linear` : 'none')
+                  width: `${progressPercentage}%`
                 }}
               />
             </div>
