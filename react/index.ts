@@ -5,8 +5,7 @@ export * from './reactUse';
 export * from './sessionData';
 export * from './push';
 
-// UI Systems
-export * from './systems/toast';
+export * from './toast';
 
 // Components
 export * from './components/form/DatePicker';
