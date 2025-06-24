@@ -6,6 +6,7 @@ export default function SmallModal({
   isOpen,
   onClose,
   title,
+  footer,
   closeOnOverlayClick = true,
 }:{
   modalExtendClassName?: string,
@@ -13,6 +14,7 @@ export default function SmallModal({
   isOpen: boolean,
   onClose: ()=>void,
   title?: React.ReactNode,
+  footer?: React.ReactNode,
   closeOnOverlayClick?: boolean,
 }){
   if (!isOpen) return null;
@@ -54,6 +56,13 @@ export default function SmallModal({
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {children}
         </div>
+        
+        {/* Fixed Footer */}
+        {footer && (
+          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-gray-50">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )
