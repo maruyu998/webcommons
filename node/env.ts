@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { ZodType, ZodTypeDef, z } from "zod";
 import { DAY, HOUR, MINUTE } from '../commons/utils/time';
 
-export const urlSchema = z.union([
+export const UrlSchema = z.union([
   z.string().startsWith("http://localhost"), 
   z.string().startsWith("https://")
 ]);

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import env, { parseDuration, urlSchema } from "../env";
+import env, { parseDuration, UrlSchema } from "../env";
 import express from "express";
 import ClientOAuth2 from "client-oauth2";
 import { randomUUID } from "crypto";
@@ -14,9 +14,9 @@ import { SessionType, AuthSessionType, TokenSessionType, UserInfoType } from "..
 
 const CLIENT_ID = env.get("CLIENT_ID", z.string().nonempty());
 const CLIENT_SECRET = env.get("CLIENT_SECRET", z.string().nonempty());
-const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", urlSchema);
-const OAUTH_INTERNAL_DOMAIN = env.get("OAUTH_INTERNAL_DOMAIN", urlSchema, OAUTH_DOMAIN);
-const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", urlSchema);
+const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", UrlSchema);
+const OAUTH_INTERNAL_DOMAIN = env.get("OAUTH_INTERNAL_DOMAIN", UrlSchema, OAUTH_DOMAIN);
+const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", UrlSchema);
 
 const OAUTH_CALLBACK_PATH = env.get("OAUTH_CALLBACK_PATH", z.string().nonempty());
 const OAUTH_TOKEN_PATH = env.get("OAUTH_TOKEN_PATH", z.string().nonempty());
