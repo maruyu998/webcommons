@@ -7,7 +7,7 @@ import { PermissionType } from "./types/apiauth";
 import { getInfoFromApiKey } from "./utils/apiauth";
 import { z } from "zod";
 import { deserializePacket } from "../commons/utils/packet";
-import { PacketSchema, PacketSerializedSchema } from "../commons/types/packet";
+import { PacketSerializedSchema } from "../commons/types/packet";
 
 export async function parseStats(
   request:express.Request,
@@ -120,6 +120,22 @@ export function requireBodyZod<Schema extends z.ZodTypeAny>(zodSchema:Schema){
     }
     // response.locals.body = {...(response.locals.body || {}), ...data};
     response.locals.body = data;
+    next();
+  };
+}
+
+export function requireParam<T>(paramName: string, schema: z.ZodSchema<T>) {
+  return (request: express.Request, response: express.Response, next: express.NextFunction) => {
+    const input = request.params[paramName];
+    if (input === undefined || input === null || input === "") {
+      return sendError(response, new InvalidParamError(paramName, "missing"));
+    }
+    const { success, error, data } = schema.safeParse(input);
+    if (!success) {
+      return sendError(response, new InvalidParamError(paramName, "invalidValue"));
+    }
+    if(!response.locals.params) response.locals.params = {};
+    response.locals.params[paramName] = data;
     next();
   };
 }
