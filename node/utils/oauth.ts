@@ -136,16 +136,13 @@ async function getAccessToken(request:express.Request):Promise<string>{
 }
 
 // userinfo
-export async function getUserInfo(request:express.Request, willReload=false):Promise<UserInfoType|null>{
+export async function getUserInfo(request:express.Request, willReload=false):Promise<UserInfoType>{
   const { userInfo } = getSession(request);
   if(willReload === false && userInfo != null && userInfo.expiresAt.getTime() > Date.now()) return userInfo;
   const accessToken = await getAccessToken(request).catch(()=>null);
-  if(accessToken == null) return null;
+  if(accessToken == null) throw new AuthenticationError("access token not found");
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_INTERNAL_DOMAIN); // 内部API呼び出し
-  const fetchReturn = await getPacket({url, option:{ accessToken }})
-                      .then((data)=>data as PacketDataType)
-                      .catch(error=>{console.error(error);return null;});
-  if(fetchReturn === null) return null;
+  const fetchReturn = await getPacket({url, option:{ accessToken }}).then((data)=>data as PacketDataType);
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
   const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:UserIdType, user_name:UserNameType, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
