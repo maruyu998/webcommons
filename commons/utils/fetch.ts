@@ -8,14 +8,19 @@ async function processFetch<T extends z.ZodTypeAny>(
   fetchPromise:Promise<Response>,
   responseSchema?: T,
 ):Promise<z.infer<T>>{
+  class NoContentError extends Error{}
   return await fetchPromise
     .then(res=>{
       if(res.status >= 200 && res.status < 300) return res;
       throw new Error(`fetch status is not 2xx, [${res.status}] ${res.statusText} fetching ${res.url}`)
     })
+    .then(res=>{
+      if(res.status == 204) throw new NoContentError()
+      return res;
+    })
     .then(res=>res.json())
     .catch(error=>{
-      if(error.name == "SyntaxError") {
+      if(error instanceof SyntaxError) {
         console.error("JSON Parse Error", error.message);
         throw new Error(`Response is not JSON`);
       }
@@ -24,6 +29,13 @@ async function processFetch<T extends z.ZodTypeAny>(
     .then((packet:PacketSerializedType)=>deserializePacket(packet))
     .then(({data, error})=>{
       if(error) throw error;
+      return data;
+    })
+    .catch(error=>{
+      if(error instanceof NoContentError) return undefined;
+      throw error;
+    })
+    .then(data=>{
       if(responseSchema == undefined) return data;
       const { success, error: zodError, data:zodData } = responseSchema.safeParse(data);
       if(!success){

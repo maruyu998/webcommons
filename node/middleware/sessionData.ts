@@ -1,5 +1,5 @@
 import express from 'express';
-import { asyncHandler, saveSession, sendData } from '../express';
+import { asyncHandler, saveSession, sendData, sendNoContent } from '../express';
 import { requireBodyZod, requireQueryZod } from '../middleware';
 import { z } from 'zod';
 
@@ -41,7 +41,7 @@ export function sessionDataMiddleware(basePath): express.Router {
     if(!request.session.clientData) request.session.clientData = {};
     request.session.clientData[key] = data;
     await saveSession(request);    
-    return sendData(response, undefined);
+    return sendNoContent(response);
   }));
   
   // DELETE: セッションデータの削除
@@ -55,7 +55,7 @@ export function sessionDataMiddleware(basePath): express.Router {
       delete request.session.clientData[key];
       await saveSession(request)
     }
-    return sendData(response, undefined);
+    return sendNoContent(response);
   }));
   return router;
 }

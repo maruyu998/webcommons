@@ -58,18 +58,19 @@ function generateLogText(response:express.Response, verboseText:string){
   return logTexts.join(" ");
 }
 
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function sendData(response:express.Response, data?:any, verboseText?:string):void{
+export function sendNoContent(response:express.Response, verboseText?:string):void{
   if(verboseText !== undefined){
     console.info(generateLogText(response, verboseText));
   }
-  if(data !== undefined){
-    /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
-    response.status(200).json(serializePacket({data}));
-  }else{
-    /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
-    response.status(204).json(serializePacket({}));
+  response.status(204).end();
+}
+
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+export function sendData(response:express.Response, data:any, verboseText?:string):void{
+  if(verboseText !== undefined){
+    console.info(generateLogText(response, verboseText));
   }
+  response.status(200).json(serializePacket({data}));
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
