@@ -217,14 +217,14 @@ export async function signout(request:express.Request, response:express.Response
 
 export async function refreshUserInfo(request:express.Request, response:express.Response){
   const willReload = true;
-  await getUserInfo(request, willReload);
+  await getUserInfo(request, willReload).catch(error=>null);
   response.status(204).send();
 }
 ////////////////////////////////// [ M I D D L E W A R E S ] //////////////////////////////////
 export async function redirectIfNotSignedIn(request:express.Request, response:express.Response, next:express.NextFunction):Promise<void>{
-  const userInfo = await getUserInfo(request);
-  if(userInfo == null) return redirectToSignin(request, response);
-  next();
+  await getUserInfo(request)
+        .then(()=>next())
+        .catch(error=>redirectToSignin(request, response));
 }
 
 export function addCors(request:express.Request, response:express.Response, next:express.NextFunction):void{
@@ -237,7 +237,7 @@ export function addCors(request:express.Request, response:express.Response, next
 }
 
 export async function getData(request:express.Request, reload=false){
-  const userInfo = await getUserInfo(request, reload);
+  const userInfo = await getUserInfo(request, reload).catch(error=>null);
   if(userInfo == null) throw new PermissionError("user is invalid");
   return userInfo.data || {};
 }
