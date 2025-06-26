@@ -95,6 +95,16 @@ export class DataNotFoundError extends CustomError {
   }
 }
 /// 409 Conflict
+export class ConflictError extends CustomError {
+  constructor(message: string){
+    super({
+      name: "ConflictError",
+      message,
+      errorcode: 409,
+      secret: false
+    });
+  }
+}
 /// 421 Misdirected Request
 /// 422 Unprocessable Content
 export class InputFormatError extends CustomError {
