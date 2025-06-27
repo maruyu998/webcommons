@@ -86,6 +86,7 @@ app.use(helmet({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
+  name: env.get("SESSION_NAME", z.string().regex(/^[!#$%&'*+\-.^_`|~0-9a-zA-Z]{1,64}$/)),
   secret: env.get("SESSION_SECRET", z.string().nonempty()),
   store: new MongoDBStore({
     uri: env.get("MONGO_SESSION_PATH", z.string().startsWith("mongodb://").nonempty()),
