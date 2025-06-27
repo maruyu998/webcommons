@@ -23,9 +23,11 @@ export function serializePacket({
     if(isDate(data)) return { t:"d", d:data.getTime() };
     if(isMdateTz(data)) return { t:"mt", d:data.toJson() };
     if(isMdate(data)) return { t:"m", d:data.toJson() };
-    if(isArray(data)) return { t:"a", d:data.map(o=>serialize(o)) };
+    if(isArray(data)) return { t:"a", d:data.filter(o=>o !== undefined).map(o=>serialize(o)) };
     if(isObject(data)) return { t:"o",
-      d: objectMapAssign(data, ([k,v])=>({[k]:serialize(v as PacketDataType)})) as {[key:string]:PacketSerializedDataType}
+      d: objectMapAssign(data, ([k,v])=>{
+        return v !== undefined ? {[k]:serialize(v as PacketDataType)} : {};
+      }) as {[key:string]:PacketSerializedDataType}
     };
     /* eslint-disable-next-line */
     console.error({data}, typeof data);
