@@ -1,5 +1,5 @@
 import { z } from "zod";
-import env, { parseDuration, UrlSchema } from "../env";
+import env, { parseDuration } from "../env";
 import express from "express";
 import ClientOAuth2 from "client-oauth2";
 import { randomUUID } from "crypto";
@@ -14,9 +14,9 @@ import { SessionType, AuthSessionType, TokenSessionType, UserInfoType } from "..
 
 const CLIENT_ID = env.get("CLIENT_ID", z.string().nonempty());
 const CLIENT_SECRET = env.get("CLIENT_SECRET", z.string().nonempty());
-const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", UrlSchema);
-const OAUTH_INTERNAL_DOMAIN = env.get("OAUTH_INTERNAL_DOMAIN", UrlSchema, OAUTH_DOMAIN);
-const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", UrlSchema);
+const OAUTH_DOMAIN = env.get("OAUTH_DOMAIN", z.string().url());
+const OAUTH_INTERNAL_DOMAIN = env.get("OAUTH_INTERNAL_DOMAIN", z.string().url(), OAUTH_DOMAIN);
+const SERVICE_DOMAIN = env.get("SERVICE_DOMAIN", z.string().url());
 
 const OAUTH_CALLBACK_PATH = env.get("OAUTH_CALLBACK_PATH", z.string().nonempty());
 const OAUTH_TOKEN_PATH = env.get("OAUTH_TOKEN_PATH", z.string().nonempty());
@@ -142,7 +142,20 @@ export async function getUserInfo(request:express.Request, willReload=false):Pro
   const accessToken = await getAccessToken(request).catch(()=>null);
   if(accessToken == null) throw new AuthenticationError("access token not found");
   const url = new URL(OAUTH_USER_INFO_PATH, OAUTH_INTERNAL_DOMAIN); // 内部API呼び出し
-  const fetchReturn = await getPacket({url, option:{ accessToken }}).then((data)=>data as PacketDataType);
+  
+  console.log("=== getUserInfo Debug ===");
+  console.log("URL:", url.toString());
+  console.log("Access Token:", accessToken.substring(0, 10) + "...");
+  
+  const fetchReturn = await getPacket({url, option:{ accessToken }})
+    .then((data)=>{
+      console.log("✓ User info fetch successful:", data);
+      return data as PacketDataType;
+    })
+    .catch((error)=>{
+      console.error("✗ User info fetch failed:", error.message);
+      throw error;
+    });
   // const { userId, userName, data } = fetchReturn as { userId:string, userName:string, data:object };
   const { user_id: userId, user_name: userName, data } = fetchReturn as { user_id:UserIdType, user_name:UserNameType, data:object };
   const expiresAt = new Date(Date.now() + USER_INFO_KEEP_DURATION);
@@ -167,6 +180,8 @@ export async function redirectToSignin(request:express.Request, response:express
 export async function processCallbackThenRedirect(request:express.Request, response:express.Response):Promise<void>{
   // if(getSession(request).auths === undefined) return sendError(response, new AuthenticationError("Session is expired"));
   const { auths } = getSession(request);
+  console.log("=== Debug Callback ===");
+  console.log("Auths:", auths);
   if(auths == undefined) return sendError(response, new AuthenticationError("auth is empty."));
   if(request.query.state === undefined) return sendError(response, new InvalidParamError("state", "missing"));
   const returnedState = String(request.query.state);
@@ -190,15 +205,39 @@ export async function processCallbackThenRedirect(request:express.Request, respo
             scope,
             expires_at: expiresAt
           } = token.data;
+          // Save token before regenerating session to avoid losing it
+          await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
+          
+          console.log("=== Before regenerateSession ==");
+          console.log("SessionID before:", request.sessionID);
+          console.log("Token before regenerate:", request.session.maruyuOAuth?.token ? "exists" : "missing");
+          
           await regenerateSession(request);
+          
+          console.log("=== After regenerateSession ==");
+          console.log("SessionID after:", request.sessionID);
+          console.log("Token after regenerate:", request.session.maruyuOAuth?.token ? "exists" : "missing");
+          
+          // Re-save token after session regeneration
+          await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
+          
           for(const [state, auth] of Object.entries(auths)){
             if(state == returnedState) continue;
             await setAuthSession(request, state, auth);
           }
-          await setTokenSession(request, { accessToken, tokenType, refreshToken, scope, expiresAt:new Date(expiresAt) });
+          console.log("=== After token save ===");
+          console.log("SessionID:", request.sessionID);
+          console.log("Token saved:", { accessToken: accessToken.substring(0,10) + "...", expiresAt });
+          
+          // Don't fetch user info immediately in callback - let the next request handle it
+          console.log("Token saved successfully, proceeding with redirect");
+          
           return response.redirect(returnTo || "/");
         })
-        .catch((error:Error)=>{sendError(response, error); throw error;})
+        .catch((error:Error)=>{
+          console.error(error); 
+          sendError(response, error);
+        });
 }
 
 export async function signout(request:express.Request, response:express.Response){
@@ -222,9 +261,20 @@ export async function refreshUserInfo(request:express.Request, response:express.
 }
 ////////////////////////////////// [ M I D D L E W A R E S ] //////////////////////////////////
 export async function redirectIfNotSignedIn(request:express.Request, response:express.Response, next:express.NextFunction):Promise<void>{
+  console.log("=== redirectIfNotSignedIn ===");
+  console.log("URL:", request.originalUrl);
+  console.log("SessionID:", request.sessionID);
+  console.log("Session data:", request.session.maruyuOAuth);
+  
   await getUserInfo(request)
-        .then(()=>next())
-        .catch(error=>redirectToSignin(request, response));
+        .then((userInfo)=>{
+          console.log("✓ User authenticated:", userInfo);
+          next();
+        })
+        .catch(error=>{
+          console.log("✗ User not authenticated, redirecting to signin:", error.message);
+          redirectToSignin(request, response);
+        });
 }
 
 export function addCors(request:express.Request, response:express.Response, next:express.NextFunction):void{

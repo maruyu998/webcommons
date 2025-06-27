@@ -2,12 +2,6 @@ import 'dotenv/config';
 import { ZodType, ZodTypeDef, z } from "zod";
 import { DAY, HOUR, MINUTE } from '../commons/utils/time';
 
-export const UrlSchema = z.union([
-  z.string().startsWith("http://localhost").url(), 
-  z.string().startsWith("https://").url()
-]).brand<"URL">();
-export type UrlType = z.infer<typeof UrlSchema>;
-
 export function parseDuration(input: string): number {
   const match = input.match(/^(\d+)(day|hour|minute|ms)$/);
   if (!match) throw new Error(`Invalid duration: ${input}`);
