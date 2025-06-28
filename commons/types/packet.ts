@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MdateSchema, MdateTzSchema, UnixSchema } from "../utils/mdate";
 
-const ValueSchema = z.lazy(()=>z.union([
+const ValueSchema: z.ZodSchema = z.lazy(()=>z.union([
   z.string(),
   z.number(),
   z.boolean(),
@@ -30,7 +30,7 @@ export const PacketSerializedDataSchema = z.object({
   d: ValueSchema
 });
 export type PacketSerializedDataType = z.infer<typeof PacketSerializedDataSchema>;
-export const PacketDataSchema = z.lazy(() =>
+export const PacketDataSchema: z.ZodSchema = z.lazy(() =>
   z.union([
     z.string(),
     z.number(),

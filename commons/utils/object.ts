@@ -1,4 +1,4 @@
-export function hasKeys(obj:object, ...keys:string[]){
+export function hasKeys(obj: Record<string, unknown>, ...keys: string[]): boolean {
   for(const key of keys){
     if(obj[key] === undefined) return false;
   }
