@@ -1,0 +1,172 @@
+# CLAUDE.md
+
+このファイルは、このリポジトリでコードを扱う際のClaude Code（claude.ai/code）へのガイダンスを提供します。
+
+## プロジェクト概要
+
+[プロジェクトの概要を記述]
+- プロジェクト名: 
+- 目的: 
+- 技術スタック: 
+
+## プロジェクト構造
+
+```
+project/
+├── server/             # バックエンドサーバー
+├── client/             # フロントエンドアプリケーション  
+├── share/              # 共有リソース（型定義、プロトコル）
+├── webcommons/         # 共通ライブラリ
+└── docs/               # プロジェクトドキュメント
+```
+
+## 開発コマンド
+
+**開発サーバー起動:**
+```bash
+npm run dev              # 開発サーバー起動
+npm run server:dev       # サーバーのみ起動
+npm run client:dev       # クライアントのみ起動
+```
+
+**ビルド:**
+```bash
+npm run build           # 本番ビルド
+npm run server:build    # サーバービルド
+npm run client:build    # クライアントビルド
+```
+
+**テスト・品質チェック:**
+```bash
+npm test               # テスト実行
+npm run lint           # リンター実行
+npm run typecheck      # 型チェック
+```
+
+## 主要技術・ライブラリ
+
+### サーバーサイド
+- **Node.js + Express** - バックエンドフレームワーク
+- **MongoDB + Mongoose** - データベース
+- **Zod** - スキーマ検証
+- **TypeScript** - 型安全性
+
+### クライアントサイド
+- **React + TypeScript** - フロントエンドフレームワーク
+- **[状態管理ライブラリ]** - 状態管理
+- **[UIライブラリ]** - UIコンポーネント
+
+### 共通
+- **webcommons** - 共通ユーティリティライブラリ
+- **Zod** - 型定義・バリデーション
+
+## アーキテクチャパターン
+
+### API設計（3層構造）
+- `/pub/*` - パブリックAPI（認証不要）
+- `/sec/*` - セキュアAPI（セッション認証）
+- `/api/*` - 外部API（APIキー認証）
+
+### 型定義パターン
+- `share/types/` - 共有型定義
+- `share/protocol/` - API仕様定義
+- branded types によるtype safety強化
+
+### データベースパターン
+- Mongoose モデルでのスキーマ定義
+- MongoDB型とビジネス型の分離
+- 適切なインデックス設定
+
+## 開発ガイドライン
+
+### コーディング規約
+- TypeScript strict mode使用
+- 全API I/OでZodスキーマ検証
+- パスエイリアス使用（@share/*, @server/*, @client/*）
+- [プロジェクト固有の規約]
+
+### セキュリティ
+- 入力値検証の徹底
+- 機密情報のログ出力禁止
+- 適切な認証・認可実装
+
+### テスト
+- [テストフレームワーク] 使用
+- ビジネスロジックの単体テスト
+- API エンドポイントの統合テスト
+
+## 環境設定
+
+### 必要な環境変数（auth実装パターン参考）
+```bash
+# データベース
+MONGODB_URI=mongodb://localhost:27017/project_name
+
+# サーバー
+PORT=3000
+SERVICE_DOMAIN=https://localhost:3000    # https://で始まる必要があります
+CLIENT_PUBLIC_PATH=./build/public        # ビルドされたクライアントファイルパス
+RUN_MODE=development                     # development/production/test
+
+# アプリケーション固有
+ADMIN_USER_NAME=admin                    # 初期管理者ユーザー名
+ADMIN_PASSWORD=admin_password            # 初期管理者パスワード
+
+# セキュリティ
+JWT_SECRET=your_jwt_secret_here
+SESSION_SECRET=your_session_secret_here
+
+# 外部サービス（必要に応じて）
+EMAIL_SMTP_HOST=smtp.example.com
+EMAIL_SMTP_PORT=587
+EMAIL_USER=your_email@example.com
+EMAIL_PASSWORD=your_email_password
+
+# [プロジェクト固有の環境変数]
+```
+
+### 開発環境構築
+```bash
+# 依存関係インストール
+npm install
+
+# 環境変数設定
+cp .env.example .env
+# .envファイルを編集
+
+# データベース起動（Docker使用の場合）
+docker-compose -f docker-compose.dev.yml up -d
+
+# 開発サーバー起動
+npm run dev
+```
+
+## 重要な注意事項
+
+### Claude Code使用時の留意点
+1. **タスク管理**: docs/user-requests.mdを確認してタスク管理
+2. **セッション継続**: docs/session-continuity.mdに従ってセッション管理
+3. **進行状況確認**: docs/sessions/active/で進行中作業を確認
+4. **コンテキスト保持**: 重要な変更は docs/ ディレクトリに記録
+5. **段階的開発**: 大きな変更は段階的に実装・テスト
+
+### 開発フロー
+1. 機能要件の明確化
+2. API設計とプロトコル定義
+3. バックエンド実装（テスト付き）
+4. フロントエンド実装
+5. 統合テスト・デバッグ
+
+### ファイル変更時の注意
+- [重要な制約やルールがあれば記述]
+- [特別な処理が必要な場合の説明]
+
+## 関連ドキュメント
+
+- [webcommons開発ガイド](./webcommons/common-docs/development/) - アーキテクチャパターン
+- [Claude Code開発ガイド](./webcommons/common-docs/claude-guidance/) - 開発ワークフロー
+- [プロジェクト固有ドキュメント] - 追加のドキュメント
+
+---
+
+**注意**: このテンプレートをプロジェクトに合わせてカスタマイズしてください。特に [プロジェクト固有] の部分は実際の内容に置き換える必要があります。
