@@ -234,14 +234,8 @@ export async function redirectIfNotSignedIn(request:express.Request, response:ex
   console.log("Session data:", request.session.maruyuOAuth);
   
   await getUserInfo(request)
-        .then((userInfo)=>{
-          console.log("✓ User authenticated:", userInfo);
-          next();
-        })
-        .catch(error=>{
-          console.log("✗ User not authenticated, redirecting to signin:", error.message);
-          redirectToSignin(request, response);
-        });
+        .then((userInfo)=>next())
+        .catch(error=>redirectToSignin(request, response));
 }
 
 export function addCors(request:express.Request, response:express.Response, next:express.NextFunction):void{
