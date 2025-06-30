@@ -20,6 +20,9 @@ webcommons ライブラリを使用したアプリケーション開発におけ
 ### ライブラリ・ユーティリティ
 - **[oauth-library.md](./oauth-library.md)** - OAuth 2.0クライアントライブラリの使用方法
 
+### コーディング規約
+- **[coding-standards.md](./coding-standards.md)** - ES Modules使用原則とコーディング規約
+
 ## 使用場面
 
 ### 新規プロジェクト開始時

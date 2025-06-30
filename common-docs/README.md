@@ -15,6 +15,7 @@ webcommons/common-docs/
 │   ├── protocol-conventions.md    # API仕様定義規約
 │   ├── refactoring-guide.md       # webcommons移行ガイド
 │   └── oauth-library.md           # OAuth 2.0ライブラリ
+├── tailwindcss-v4-integration.md  # TailwindCSS v4統合ガイド
 ├── claude-guidance/                # Claude Code開発ガイド
 │   ├── README.md                   # Claude Code開発ガイド概要
 │   ├── session-continuity.md      # セッション継続システム（記憶術）
@@ -131,10 +132,13 @@ Claude Code (claude.ai/code) を使用した効率的な開発ワークフロー
 - → **自動的にcommon-docs/の適切な場所に追加・更新してください**
 
 **対象となる知見**:
-- 技術的な問題と解決策（例: Tailwind v4移行、Webpack最適化）
+- 技術的な問題と解決策（例: **TailwindCSS v4 @configディレクティブ**、Webpack最適化）
 - 開発パターンとベストプラクティス
 - ライブラリ・フレームワークの使用方法
 - Claude Codeとの協働で発見された効率的手法
+
+**最新の統合知見**:
+- **[tailwindcss-v4-integration.md](./tailwindcss-v4-integration.md)** - TailwindCSS v4でのwebcommons統合（@configディレクティブ必須）
 
 この仕組みにより、プロジェクト間での知見共有が自動化され、開発効率が継続的に向上します。
 
