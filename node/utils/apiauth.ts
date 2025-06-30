@@ -54,3 +54,8 @@ export async function getUserApiauths(userId:UserIdType){
   ).lean();
   return apiauths;
 }
+
+export async function deleteApiauth(userId:UserIdType, apiauthId:string){
+  const result = await ApiauthModel.deleteOne({ userId, apiauthId });
+  return result.deletedCount > 0;
+}
