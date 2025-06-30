@@ -228,11 +228,6 @@ export async function refreshUserInfo(request:express.Request, response:express.
 }
 ////////////////////////////////// [ M I D D L E W A R E S ] //////////////////////////////////
 export async function redirectIfNotSignedIn(request:express.Request, response:express.Response, next:express.NextFunction):Promise<void>{
-  console.log("=== redirectIfNotSignedIn ===");
-  console.log("URL:", request.originalUrl);
-  console.log("SessionID:", request.sessionID);
-  console.log("Session data:", request.session.maruyuOAuth);
-  
   await getUserInfo(request)
         .then((userInfo)=>next())
         .catch(error=>redirectToSignin(request, response));
