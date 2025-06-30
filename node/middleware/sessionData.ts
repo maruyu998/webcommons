@@ -14,7 +14,7 @@ import { z } from 'zod';
  * app.use(sessionDataMiddleware()); // デフォルト: /api/session/data
  * app.use(sessionDataMiddleware('/custom/session')); // カスタム: /custom/session/data
  */
-export function sessionDataMiddleware(basePath): express.Router {
+export function sessionDataMiddleware(basePath: string): express.Router {
   const router = express.Router();
   
   // GET: セッションデータの取得
