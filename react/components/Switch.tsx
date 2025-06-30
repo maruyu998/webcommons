@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { HexColorType } from '../../commons';
 // Enhanced Switch component with better accessibility and state management
 // Based on Material Tailwind patterns: https://www.material-tailwind.com/docs/html/switch
 
@@ -11,6 +12,7 @@ interface SwitchProps {
   defaultChecked?: boolean;
   size?: SwitchSize;
   color?: SwitchColor;
+  customColor?: HexColorType,
   disabled?: boolean;
   label?: string;
   description?: string;
@@ -48,6 +50,7 @@ export default function Switch({
   defaultChecked = false,
   size = 'md',
   color = 'slate',
+  customColor,
   disabled = false,
   label,
   description,
@@ -87,21 +90,25 @@ export default function Switch({
           absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-full
           transition-colors duration-300 ease-in-out
           ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-          bg-gray-200 
-          ${colorStyles[color]}
+          ${customColor ? '' : 'bg-gray-200'}
+          ${customColor ? '' : colorStyles[color]}
           peer-focus:ring-4 peer-focus:ring-opacity-20
           ${sizeStyles[size].container}
         `}
-      >
-        <span
-          className={`
-            absolute top-0.5 left-0.5 bg-white rounded-full shadow-md
-            transition-transform duration-300 ease-in-out
-            ${sizeStyles[size].toggle}
-            ${sizeStyles[size].translate}
-          `}
-        />
-      </label>
+        style={customColor ? {
+          backgroundColor: isChecked ? customColor : `${customColor}33`,
+          border: !isChecked ? `1px solid ${customColor}` : 'none',
+        } : undefined}
+      />
+      <span
+        className={`
+          absolute top-0.5 left-0.5 bg-white rounded-full shadow-md
+          transition-transform duration-300 ease-in-out
+          ${sizeStyles[size].toggle}
+          ${sizeStyles[size].translate}
+          pointer-events-none
+        `}
+      />
     </div>
   );
 
