@@ -33,6 +33,9 @@ export default function ToastDisplay({ toastList, deleteToast, pauseToast, resum
   const handleCopyToClipboard = async (id: string, title: string | null, message: string | null) => {
     try {
       const textToCopy = [title, message].filter(Boolean).join('\n');
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard API not available');
+      }
       await navigator.clipboard.writeText(textToCopy);
       setCopiedToast(id);
       setTimeout(() => setCopiedToast(null), 2000); // Reset after 2 seconds
